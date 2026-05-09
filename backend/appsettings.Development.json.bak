@@ -2,17 +2,10 @@
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=organia_tasks;Username=postgres;Password=yourpassword"
   },
-  "JwtSettings": {
-    "Secret": "your-super-secret-key-minimum-32-characters-long-change-this",
-    "Issuer": "OrganiaTaskAPI",
-    "Audience": "OrganiaTaskClient",
-    "ExpiryMinutes": 60
-  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
       "Microsoft.AspNetCore": "Warning"
     }
-  },
-  "AllowedHosts": "*"
+  }
 }

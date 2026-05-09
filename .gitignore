@@ -37,3 +37,11 @@ dist/
 build/
 coverage/
 .vs/
+
+# Secret config files — never commit these
+appsettings.Development.json
+appsettings.Production.json
+
+
+# User secrets
+*.user
