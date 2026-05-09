@@ -1,0 +1,39 @@
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
+
+# ===== Environment files =====
+.env
+.env.*
+!.env.example
+
+# ===== Node / Next.js =====
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.vercel/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ===== .NET / ASP.NET Core =====
+backend/bin/
+backend/obj/
+backend/.vs/
+backend/*.user
+backend/*.suo
+backend/TestResults/
+backend/Publish/
+backend/*.cache
+backend/*.log
+
+# ===== Root / general =====
+node_modules/
+dist/
+build/
+coverage/
+.vs/
