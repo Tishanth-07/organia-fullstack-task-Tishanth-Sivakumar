@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace backend.Configurations;
 
-// Fluent API config — keeps entity classes clean
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
@@ -13,7 +12,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(u => u.Id);
 
-        builder.Property(u => u.Username)
+        builder.Property(u => u.FirstName)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        builder.Property(u => u.LastName)
             .IsRequired()
             .HasMaxLength(50);
 
@@ -21,24 +24,26 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(100);
 
-        // Unique email — no duplicate accounts
-        builder.HasIndex(u => u.Email)
-            .IsUnique();
+        builder.HasIndex(u => u.Email).IsUnique();
 
-        // Unique username
-        builder.HasIndex(u => u.Username)
-            .IsUnique();
+        builder.Property(u => u.PasswordHash).IsRequired();
 
-        builder.Property(u => u.PasswordHash)
+        builder.Property(u => u.Role)
+            .HasConversion<string>()
             .IsRequired();
 
-        builder.Property(u => u.CreatedAt)
-            .IsRequired();
+        builder.Property(u => u.IsEmailVerified).IsRequired();
 
-        builder.Property(u => u.UpdatedAt)
-            .IsRequired();
+        builder.Property(u => u.EmailVerificationCodeHash).IsRequired(false);
+        builder.Property(u => u.EmailVerificationCodeExpiry).IsRequired(false);
+        builder.Property(u => u.PasswordResetCodeHash).IsRequired(false);
+        builder.Property(u => u.PasswordResetCodeExpiry).IsRequired(false);
+        builder.Property(u => u.LockoutEnd).IsRequired(false);
+        builder.Property(u => u.LastVerificationCodeSentAt).IsRequired(false);
 
-        // One user has many tasks; cascade delete cleans up tasks when user is deleted
+        builder.Ignore(u => u.FullName);
+        builder.Ignore(u => u.IsLockedOut);
+
         builder.HasMany(u => u.Tasks)
             .WithOne(t => t.User)
             .HasForeignKey(t => t.UserId)

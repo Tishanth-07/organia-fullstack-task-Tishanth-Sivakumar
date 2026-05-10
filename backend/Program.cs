@@ -1,25 +1,77 @@
+using System.Text;
 using backend.Data;
+using backend.Helpers;
+using backend.Middleware;
+using backend.Services;
+using backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Services ──────────────────────────────────────────────────────────────────
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Register PostgreSQL + EF Core
+// ── Database ──────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// CORS — allow Next.js dev server (Task 6: update with real Vercel URL for prod)
+// ── JWT Auth ──────────────────────────────────────────────────────────────────
+var jwtSecret = builder.Configuration["JwtSettings:Secret"]!;
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidateAudience         = true,
+            ValidateLifetime         = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer              = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience            = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ClockSkew                = TimeSpan.Zero // no grace period on expiry
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// ── Services ──────────────────────────────────────────────────────────────────
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<JwtHelper>();
+
+// ── Controllers ───────────────────────────────────────────────────────────────
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+
+// ── Swagger with JWT support ──────────────────────────────────────────────────
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Organia Task API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header. Example: 'Bearer {token}'",
+        Name        = "Authorization",
+        In          = ParameterLocation.Header,
+        Type        = SecuritySchemeType.ApiKey,
+        Scheme      = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:3000",    // Next.js dev
+                "http://localhost:3000",
                 "https://localhost:3000"
               )
               .AllowAnyHeader()
@@ -27,9 +79,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ── Build & Middleware ─────────────────────────────────────────────────────────
-
+// ── Build ─────────────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// Global exception handler (must be first middleware)
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -39,6 +93,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseAuthentication(); // must be before UseAuthorization
 app.UseAuthorization();
 app.MapControllers();
 
