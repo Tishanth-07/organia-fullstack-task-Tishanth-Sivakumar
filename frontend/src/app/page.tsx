@@ -14,17 +14,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-xl">
         <nav className="flex items-center justify-between px-6 md:px-10 py-4 max-w-7xl mx-auto w-full">
           {/* Brand Identity */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center shadow-lg shadow-[var(--color-accent-glow)]">
-              <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="4" width="6" height="1.5" rx="0.75" fill="white" opacity="0.9"/>
-                <rect x="3" y="7.5" width="9" height="1.5" rx="0.75" fill="white" opacity="0.7"/>
-                <rect x="3" y="11" width="7" height="1.5" rx="0.75" fill="white" opacity="0.5"/>
-                <circle cx="15" cy="14" r="3.5" stroke="white" strokeWidth="1.4" fill="none"/>
-                <path d="M13.5 14l1 1 2-2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <span className="text-[1rem] font-bold tracking-tight font-display text-[var(--color-fg)]">Nintro</span>
+          <div className="flex items-center">
+            <span className="text-[1.25rem] font-bold tracking-tight font-display text-[var(--color-fg)]">Nintro</span>
           </div>
 
           {/* Main Links (Desktop) */}
@@ -181,10 +172,7 @@ export default function LandingPage() {
       {/* ── Section: Footer ────────────────────────────────────── */}
       <footer className="border-t border-[var(--color-border)] py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-[var(--color-accent)] flex items-center justify-center">
-              <div className="w-2 h-2 rounded-sm bg-white" />
-            </div>
+          <div className="flex items-center">
             <p className="text-[var(--color-fg-4)] text-[0.75rem] font-bold">
               © {new Date().getFullYear()} Nintro — Engineered for high performance.
             </p>

@@ -841,17 +841,7 @@ input[type="date"] { color-scheme: dark; }
   justify-content: space-between;
 }
 
-.nav-logo { display: flex; align-items: center; gap: 10px; }
-.nav-logo-mark {
-  width:           34px;
-  height:          34px;
-  border-radius:   var(--radius-sm);
-  background:      var(--color-accent-dim);
-  border:          1px solid rgba(22,163,74,0.2);
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-}
+.nav-logo { display: flex; align-items: center; }
 .nav-logo-text { font-size: 1.05rem; font-weight: 800; font-family: var(--font-display); color: var(--color-fg); letter-spacing: -0.02em; }
 
 .nav-right { display: flex; align-items: center; gap: 10px; }

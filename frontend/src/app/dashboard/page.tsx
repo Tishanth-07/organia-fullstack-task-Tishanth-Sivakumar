@@ -101,12 +101,6 @@ export default function DashboardPage() {
       <header className="dashboard-nav">
         <div className="nav-inner">
           <div className="nav-logo">
-            <div className="nav-logo-mark">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M9 11l3 3L22 4" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
             <span className="nav-logo-text">Nintro</span>
           </div>
 
