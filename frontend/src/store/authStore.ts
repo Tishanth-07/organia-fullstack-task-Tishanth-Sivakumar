@@ -23,17 +23,20 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      setAuth: (data) => {
+      setAuth: (data: any) => {
+        const token = data.token || data.Token
+        if (!token) return
+
         // Set cookie for middleware (7 days)
-        document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        document.cookie = `token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
         
         set({
-          token: data.token,
+          token: token,
           user: {
-            email: data.email,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            role: data.role,
+            email: data.email || data.Email,
+            firstName: data.firstName || data.FirstName,
+            lastName: data.lastName || data.LastName,
+            role: data.role || data.Role,
           },
           isAuthenticated: true,
         })

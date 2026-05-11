@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/authStore';
 import { useTasksStore } from '@/store/tasks-store';
 import TaskFilters from '@/components/tasks/TaskFilters';
 import TaskBoard from '@/components/tasks/TaskBoard';
@@ -42,21 +43,19 @@ export default function DashboardPage() {
   const [user]  = useState(getUser);
   const [menuOpen, setMenuOpen] = useState(false);
   const { fetchTasks, pagedTasks, openCreate } = useTasksStore();
+  const logout = useAuthStore((s) => s.logout);
 
   // Auth guard
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') ?? sessionStorage.getItem('auth_token');
-    if (!token) { router.replace('/auth/login'); return; }
+    const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+    if (!token) { router.replace('/'); return; }
     fetchTasks();
   }, [fetchTasks, router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('auth_user');
+    logout();
     toast.success('Logged out successfully');
-    router.replace('/auth/login');
+    router.replace('/');
   };
 
   const initials    = getInitials(user?.name, user?.email);
