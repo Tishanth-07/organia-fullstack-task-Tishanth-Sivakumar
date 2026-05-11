@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace backend.Middleware;
 
+/// <summary>
+/// Middleware to intercept all unhandled exceptions and return a standardized JSON error response.
+/// </summary>
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
@@ -10,7 +13,7 @@ public class GlobalExceptionMiddleware
 
     public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
     {
-        _next   = next;
+        _next = next;
         _logger = logger;
     }
 
@@ -22,26 +25,37 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            _logger.LogError(ex, "An unhandled exception occurred during the request.");
             await HandleExceptionAsync(context, ex);
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception ex)
+    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var (statusCode, message) = ex switch
+        context.Response.ContentType = "application/json";
+
+        // Map exception types to HTTP status codes
+        var statusCode = exception switch
         {
-            ArgumentException          => (HttpStatusCode.BadRequest,    ex.Message),
-            KeyNotFoundException       => (HttpStatusCode.NotFound,      ex.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ex.Message),
-            InvalidOperationException  => (HttpStatusCode.Conflict,      ex.Message),
-            _                          => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
+            UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
+            KeyNotFoundException        => (int)HttpStatusCode.NotFound,
+            InvalidOperationException   => (int)HttpStatusCode.BadRequest,
+            ArgumentException           => (int)HttpStatusCode.BadRequest,
+            _                           => (int)HttpStatusCode.InternalServerError
         };
 
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode  = (int)statusCode;
+        context.Response.StatusCode = statusCode;
 
-        var response = JsonSerializer.Serialize(new { message });
-        return context.Response.WriteAsync(response);
+        // Create a professional error response
+        var response = new
+        {
+            status  = statusCode,
+            message = exception.Message,
+            // Only include trace/details in Development environments in a real app
+            // For now, we keep it simple for the user.
+        };
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, options));
     }
 }

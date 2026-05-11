@@ -1,18 +1,24 @@
 version: "3.9"
 
+# ── Nintro Stack Orchestration ──────────────────────────────────────────────
+# Defines the interconnected services for the full-stack application.
+# All sensitive values are parameterized via the .env file.
+
+
 services:
 
-  # ─── PostgreSQL 16 ────────────────────────────────────────────────────────
+  # ── Section: Persistent Database ──────────────────────────────────────────
+  # Standard PostgreSQL 16 image with health monitoring.
   db:
     image: postgres:16-alpine
-    container_name: organia_db
+    container_name: nintro_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,20 +27,22 @@ services:
       timeout: 5s
       retries: 10
 
-  # ─── .NET 8 Backend ───────────────────────────────────────────────────────
+  # ── Section: .NET Core Backend ────────────────────────────────────────────
+  # Handles API logic, authentication, and background services.
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
       target: build
-    container_name: organia_backend
+    container_name: nintro_backend
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:5181
+      ASPNETCORE_URLS: http://+:${BACKEND_PORT:-5181}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: ${JWT_ISSUER}
@@ -47,19 +55,20 @@ services:
       EmailSettings__FromEmail: ${FROM_EMAIL}
       EmailSettings__FromName: ${FROM_NAME}
     ports:
-      - "5181:5181"
+      - "${BACKEND_PORT:-5181}:${BACKEND_PORT:-5181}"
     volumes:
       - ./backend:/src/backend
     working_dir: /src/backend
     command: dotnet watch run --project backend.csproj --urls http://0.0.0.0:5181
 
-  # ─── Next.js 15 Frontend ──────────────────────────────────────────────────
+  # ── Section: Next.js Frontend ─────────────────────────────────────────────
+  # High-performance user interface with real-time reactivity.
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
       target: deps
-    container_name: organia_frontend
+    container_name: nintro_frontend
     restart: unless-stopped
     depends_on:
       - backend
@@ -67,7 +76,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NODE_ENV: ${ASPNETCORE_ENVIRONMENT}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -75,6 +84,9 @@ services:
     working_dir: /app
     command: npm run dev
 
+# ── Section: Infrastructure Resources ───────────────────────────────────────
+
 volumes:
   postgres_data:
     driver: local
+    name: nintro_postgres_volume

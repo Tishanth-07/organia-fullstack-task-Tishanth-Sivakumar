@@ -4,18 +4,18 @@ import type { ReactNode } from 'react'
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     /*
-      flex-1 fills the remaining height inside the root min-h-screen wrapper.
-      This means the auth shell always occupies full viewport — no blank space.
+      The wrapper uses flex-1 to fill the remaining height of the viewport,
+      ensuring the authentication shell is always visually centered or full-height.
     */
     <div className="flex-1 flex font-body">
 
-      {/* ── Left branding panel (lg+) ─────────────────── */}
+      {/* ── Section: Branding Side Panel (lg+) ─────────────────── */}
       <div className="hidden lg:flex flex-col justify-between w-[46%] p-12 border-r border-[var(--color-border)] bg-[var(--color-surface)]/60 relative overflow-hidden">
 
-        {/* Subtle inner glow */}
+        {/* Visual: Ambient Glow Effect */}
         <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[var(--color-accent-glow)] blur-[80px] pointer-events-none" />
 
-        {/* Logo */}
+        {/* Top: Logo & Identity */}
         <Link href="/" className="flex items-center gap-2.5 group w-fit">
           <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center shadow-lg shadow-[var(--color-accent-glow)] group-hover:scale-105 transition-transform">
             <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <span className="text-[1.05rem] font-bold tracking-tight font-display text-[var(--color-fg)]">Nintro</span>
         </Link>
 
-        {/* Main copy */}
+        {/* Center: Hero Messaging & Social Proof */}
         <div className="space-y-10">
           <div>
             <h2 className="text-[2.4rem] font-black leading-tight font-display text-[var(--color-fg)] mb-4">
@@ -41,7 +41,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          {/* Stats */}
+          {/* Key Metrics */}
           <div className="space-y-4">
             {[
               { stat: '10k+', label: 'Active teams' },
@@ -55,7 +55,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             ))}
           </div>
 
-          {/* Testimonial card */}
+          {/* Dynamic Testimonial */}
           <div className="card p-5">
             <p className="text-[var(--color-fg-2)] text-[0.8rem] leading-relaxed mb-4 italic">
               "Nintro completely changed how our team operates. We ship 30% faster now."
@@ -70,14 +70,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        {/* Bottom: Copyright & Legal */}
         <p className="text-[var(--color-fg-4)] text-[0.7rem]">© {new Date().getFullYear()} Nintro</p>
       </div>
 
-      {/* ── Right form panel ──────────────────────────── */}
+      {/* ── Section: Form Panel (Centered) ──────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 overflow-y-auto">
         <div className="w-full max-w-md py-8">
 
-          {/* Mobile logo */}
+          {/* Mobile Identity: Displayed only when branding panel is hidden */}
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
             <div className="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center">
               <div className="w-3 h-3 rounded-sm bg-white/80" />
@@ -88,6 +89,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
+
     </div>
   )
 }

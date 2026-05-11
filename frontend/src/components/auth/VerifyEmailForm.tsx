@@ -1,52 +1,77 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
 import { toast } from 'sonner'
-import { AuthHeading, FieldError, Label, SubmitButton, inputCls } from '@/components/auth/AuthUI'
 
 export function VerifyEmailForm() {
-  const router       = useRouter()
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const email        = searchParams.get('email') || ''
+  const email = searchParams.get('email') || ''
 
-  const [code, setCode]               = useState(['', '', '', '', '', ''])
-  const [loading, setLoading]         = useState(false)
+  // ── State: OTP & Workflow ──────────────────────────────────────────────────
+  const [code, setCode]           = useState(['', '', '', '', '', ''])
+  const [loading, setLoading]     = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
-  const [cooldown, setCooldown]       = useState(0)
+  const [cooldown, setCooldown]   = useState(0)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
+  /**
+   * Lifecycle: Manage the resend cooldown timer.
+   */
   useEffect(() => {
-    inputRefs.current[0]?.focus()
-  }, [])
-
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setInterval(() => setCooldown((c) => c - 1), 1000)
-    return () => clearInterval(t)
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
   }, [cooldown])
 
-  function handleChange(i: number, val: string) {
-    if (!/^\d*$/.test(val)) return
-    const updated = [...code]; updated[i] = val.slice(-1); setCode(updated)
-    if (val && i < 5) inputRefs.current[i + 1]?.focus()
+  // ── Handlers: Input Logic ──────────────────────────────────────────────────
+
+  /**
+   * Processes individual character inputs and auto-focuses the next field.
+   */
+  function handleChange(index: number, value: string) {
+    if (!/^\d*$/.test(value)) return
+    const newCode = [...code]
+    newCode[index] = value.slice(-1)
+    setCode(newCode)
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus()
+    }
   }
 
-  function handleKeyDown(i: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !code[i] && i > 0) inputRefs.current[i - 1]?.focus()
+  /**
+   * Handles keyboard navigation (e.g., Backspace for deleting and focusing previous).
+   */
+  function handleKeyDown(index: number, e: React.KeyboardEvent) {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus()
+    }
   }
 
+  /**
+   * Supports pasting full 6-digit codes into the input segments.
+   */
   function handlePaste(e: React.ClipboardEvent) {
     e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    const updated = [...code]
-    pasted.split('').forEach((d, i) => { updated[i] = d })
-    setCode(updated)
-    inputRefs.current[Math.min(pasted.length, 5)]?.focus()
+    const data = e.clipboardData.getData('text').slice(0, 6).split('')
+    if (data.every(char => /^\d$/.test(char))) {
+      const newCode = [...code]
+      data.forEach((char, i) => { newCode[i] = char })
+      setCode(newCode)
+      inputRefs.current[Math.min(data.length, 5)]?.focus()
+    }
   }
 
+  // ── Handlers: Workflow ─────────────────────────────────────────────────────
+
+  /**
+   * Submits the 6-digit code for account activation.
+   */
   async function handleVerify() {
     const full = code.join('')
     if (full.length < 6) {
@@ -63,6 +88,9 @@ export function VerifyEmailForm() {
     } finally { setLoading(false) }
   }
 
+  /**
+   * Requests a new verification code from the backend.
+   */
   async function handleResend() {
     setResendLoading(true)
     try {
@@ -78,9 +106,11 @@ export function VerifyEmailForm() {
 
   const filled = code.join('').length
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-7 animate-fade-up">
-      {/* Icon + heading */}
+      {/* Icon + Heading */}
       <div className="space-y-3">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
           style={{ background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' }}>
@@ -96,14 +126,14 @@ export function VerifyEmailForm() {
         </p>
       </div>
 
-      {/* OTP boxes */}
+      {/* OTP Input Boxes */}
       <div className="space-y-4" onPaste={handlePaste}>
         <label className="field-label">Verification code</label>
         <div className="flex gap-2.5">
           {code.map((digit, i) => (
             <input
               key={i}
-              ref={(el) => { inputRefs.current[i] = el }}
+              ref={(el) => { inputRefs.current[i] = el; }}
               type="text"
               inputMode="numeric"
               maxLength={1}
@@ -115,7 +145,7 @@ export function VerifyEmailForm() {
           ))}
         </div>
 
-        {/* Progress indicator */}
+        {/* Dynamic Progress indicator */}
         <div className="flex gap-1">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-0.5 flex-1 rounded-full transition-all duration-300"
@@ -134,7 +164,7 @@ export function VerifyEmailForm() {
         </button>
       </div>
 
-      {/* Resend */}
+      {/* Resend Actions */}
       <div className="text-center space-y-1.5">
         <p className="text-[var(--color-fg-3)] text-[0.8rem]">Didn't receive a code?</p>
         {cooldown > 0 ? (

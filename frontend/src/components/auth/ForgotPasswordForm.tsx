@@ -12,15 +12,24 @@ import { AuthHeading, FieldError, Label, SubmitButton, inputCls } from '@/compon
 
 export function ForgotPasswordForm() {
   const router = useRouter()
+  
+  // ── State: Workflow Progression ─────────────────────────────────────────────
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [sent, setSent] = useState(false)
 
+  // ── Form Configuration (React Hook Form + Zod) ──────────────────────────────
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordSchema>({ resolver: zodResolver(forgotPasswordSchema) })
 
+  // ── Handlers: Workflow ─────────────────────────────────────────────────────
+
+  /**
+   * Processes the recovery request.
+   * On success: Transitions UI to show a success message and direct the user to the reset page.
+   */
   async function onSubmit(data: ForgotPasswordSchema) {
     try {
       const res = await authApi.forgotPassword(data)
@@ -32,8 +41,11 @@ export function ForgotPasswordForm() {
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Header Section */}
       <AuthHeading
         icon={
           <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -46,6 +58,7 @@ export function ForgotPasswordForm() {
       />
 
       {sent ? (
+        /* Success State: Instructions for next step */
         <div className="space-y-5">
           <p className="text-sm text-[var(--color-fg-3)] bg-[var(--color-accent-dim)] p-4 rounded-xl border border-[var(--color-accent)]/10">
             We've sent a code to <span className="text-[var(--color-fg-2)] font-medium">{submittedEmail}</span>.
@@ -58,6 +71,7 @@ export function ForgotPasswordForm() {
           </button>
         </div>
       ) : (
+        /* Entry State: Initial Email Request */
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <Label>Email address</Label>
@@ -76,6 +90,7 @@ export function ForgotPasswordForm() {
         </form>
       )}
 
+      {/* Back Link */}
       <div className="text-center">
         <Link href="/auth/login" className="text-[0.78rem] text-[var(--color-fg-3)] hover:text-[var(--color-fg-2)] transition-colors">
           ← Back to sign in

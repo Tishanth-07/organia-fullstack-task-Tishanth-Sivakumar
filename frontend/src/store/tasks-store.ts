@@ -9,30 +9,38 @@ import type {
   UpdateTaskPayload,
 } from '@/types/task';
 
-// ── State shape ───────────────────────────────────────────────────────────────
-
+/**
+ * State and actions for managing the application's task collection.
+ * Includes pagination, filtering, and CRUD operations.
+ */
 interface TasksState {
-  // Data
+  // Data State
   pagedTasks:  PagedTasks | null;
   tasks:       Task[];
   isLoading:   boolean;
   error:       string | null;
 
-  // Filters / sort / pagination
+  // Search & Pagination Parameters
   query: TaskQuery;
 
-  // Modal state
+  // UI / Modal State
   editingTask:   Task | null;
   deletingTaskId: string | null;
   isModalOpen:   boolean;
 
-  // Actions
+  // Core Actions
+  /** Fetches a paged list of tasks from the API */
   fetchTasks:   (q?: Partial<TaskQuery>) => Promise<void>;
+  /** Creates a new task and refreshes the current list */
   createTask:   (payload: CreateTaskPayload) => Promise<Task>;
+  /** Updates an existing task with optimistic UI updates */
   updateTask:   (id: string, payload: UpdateTaskPayload) => Promise<Task>;
+  /** Deletes a task by ID */
   deleteTask:   (id: string) => Promise<void>;
+  /** Rapidly updates a task's status (e.g., from a checkbox) */
   quickStatus:  (id: string, status: TaskStatus) => Promise<void>;
 
+  // UI / Helper Actions
   setQuery:       (q: Partial<TaskQuery>) => void;
   openCreate:     () => void;
   openEdit:       (task: Task) => void;
@@ -41,8 +49,9 @@ interface TasksState {
   clearError:     () => void;
 }
 
-// ── Store ─────────────────────────────────────────────────────────────────────
-
+/**
+ * Main store for managing tasks across the dashboard.
+ */
 export const useTasksStore = create<TasksState>((set, get) => ({
   pagedTasks:     null,
   tasks:          [],
@@ -53,8 +62,8 @@ export const useTasksStore = create<TasksState>((set, get) => ({
   deletingTaskId: null,
   isModalOpen:    false,
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────
-
+  // ── Fetch Operations ──────────────────────────────────────────────────────
+  
   fetchTasks: async (partial = {}) => {
     const newQuery = { ...get().query, ...partial };
     set({ isLoading: true, error: null, query: newQuery });
@@ -66,56 +75,58 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     }
   },
 
-  // ── Create ────────────────────────────────────────────────────────────────
-
+  // ── Persistence Operations ────────────────────────────────────────────────
+  
   createTask: async (payload) => {
     const task = await tasksApi.create(payload);
+    // Reset to first page to see the new task (sorted by desc)
     await get().fetchTasks({ page: 1 });
     return task;
   },
 
-  // ── Update ────────────────────────────────────────────────────────────────
-
   updateTask: async (id, payload) => {
     const task = await tasksApi.update(id, payload);
-    // Optimistic update in list
+    
+    // Perform optimistic update to keep UI snappy
     set((s) => ({
       tasks: s.tasks.map((t) => (t.id === id ? task : t)),
     }));
+    
     await get().fetchTasks();
     return task;
   },
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-
   deleteTask: async (id) => {
     await tasksApi.delete(id);
+    
+    // Instantly remove from local state
     set((s) => ({
       tasks:          s.tasks.filter((t) => t.id !== id),
       deletingTaskId: null,
     }));
+    
     await get().fetchTasks();
   },
 
-  // ── Quick status toggle ───────────────────────────────────────────────────
-
   quickStatus: async (id, status) => {
-    // Optimistic
+    // Optimistically update the status icon/text
     set((s) => ({
       tasks: s.tasks.map((t) => (t.id === id ? { ...t, status } : t)),
     }));
+    
     try {
       await tasksApi.update(id, { status });
       await get().fetchTasks();
     } catch (e: unknown) {
+      // Revert or show error on failure
       set({ error: (e as Error).message });
-      await get().fetchTasks(); // revert
+      await get().fetchTasks();
     }
   },
 
-  // ── UI helpers ────────────────────────────────────────────────────────────
-
-  setQuery:       (q) => { set((s) => ({ query: { ...s.query, ...q } })); },
+  // ── UI Control Actions ────────────────────────────────────────────────────
+  
+  setQuery:       (q) => set((s) => ({ query: { ...s.query, ...q } })),
   openCreate:     () => set({ isModalOpen: true, editingTask: null }),
   openEdit:       (task) => set({ isModalOpen: true, editingTask: task }),
   closeModal:     () => set({ isModalOpen: false, editingTask: null }),

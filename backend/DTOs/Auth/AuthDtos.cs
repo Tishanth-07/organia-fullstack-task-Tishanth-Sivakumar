@@ -1,52 +1,25 @@
 namespace backend.DTOs.Auth;
 
-// ── Register ─────────────────────────────────────────────
-public record RegisterDto(
-    string FirstName,
-    string LastName,
-    string Email,
-    string Password
-);
+/// <summary>Data required to register a new user.</summary>
+public record RegisterDto(string FirstName, string LastName, string Email, string Password);
 
-// ── Verify Email ──────────────────────────────────────────
-public record VerifyEmailDto(
-    string Email,
-    string Code          // 6-digit OTP
-);
+/// <summary>Credentials required to authenticate a user.</summary>
+public record LoginDto(string Email, string Password);
 
-// ── Resend Verification Code ──────────────────────────────
-public record ResendVerificationDto(
-    string Email
-);
+/// <summary>Data required to verify an email address.</summary>
+public record VerifyEmailDto(string Email, string Code);
 
-// ── Login ─────────────────────────────────────────────────
-public record LoginDto(
-    string Email,
-    string Password
-);
+/// <summary>Data required to resend a verification code.</summary>
+public record ResendVerificationDto(string Email);
 
-// ── Forgot Password ───────────────────────────────────────
-public record ForgotPasswordDto(
-    string Email
-);
+/// <summary>Data required to initiate a password reset.</summary>
+public record ForgotPasswordDto(string Email);
 
-// ── Reset Password ────────────────────────────────────────
-public record ResetPasswordDto(
-    string Email,
-    string Code,
-    string NewPassword
-);
+/// <summary>Data required to complete a password reset.</summary>
+public record ResetPasswordDto(string Email, string Code, string NewPassword);
 
-// ── Auth Response (returned on successful login) ──────────
-public record AuthResponseDto(
-    string Token,
-    string Email,
-    string FirstName,
-    string LastName,
-    string Role
-);
+/// <summary>Standard message response for non-data API results.</summary>
+public record MessageResponseDto(string Message);
 
-// ── Generic Message Response ──────────────────────────────
-public record MessageResponseDto(
-    string Message
-);
+/// <summary>Response data containing the JWT token and user profile.</summary>
+public record AuthResponseDto(string Token, string Email, string FirstName, string LastName, string Role);

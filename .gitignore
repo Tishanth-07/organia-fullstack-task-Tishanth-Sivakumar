@@ -1,12 +1,13 @@
-# ===== OS =====
+# ── 1. Operating System & IDE ────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 
-# ===== IDEs =====
+# IDE-specific (Visual Studio, VS Code, JetBrains)
 .vscode/
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.suo
 *.ntvs*
@@ -14,31 +15,49 @@ Thumbs.db
 *.sln.docstates
 *.user
 *.userosscache
-*.sln.docstates
+.vs/
 
-# ===== Build & Dependencies =====
+# ── 2. Build & Dependencies ─────────────────────────────────────────────────
+
+# Shared node dependencies
 node_modules/
+**/node_modules/
+
+# Compiled outputs (C# / .NET)
 [Bb]in/
 [Oo]bj/
+**/bin/
+**/obj/
+
+# Web build artifacts (Next.js / Vite)
 dist/
 build/
 out/
 .next/
+**/dist/
+**/build/
+**/out/
+**/.next/
 .turbo/
 .vercel/
 *.tsbuildinfo
 next-env.d.ts
 
-# ===== Environment & Secrets =====
+# ── 3. Security & Environment ───────────────────────────────────────────────
+
+# Strictly prevent secret leakage
 .env
 .env.local
 .env.*.local
 !.env.example
+
+# Local configuration overrides
 appsettings.Development.json
 appsettings.Production.json
 secrets.json
+docker-compose.override.yml
 
-# ===== Logs & Temp =====
+# ── 4. Logs & Diagnostic ───────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -47,19 +66,8 @@ yarn-error.log*
 *.tmp
 *.bak
 *.cache
-
-# ===== Testing =====
 coverage/
 TestResults/
 
-# ===== Project Specific =====
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-backend/bin/
-backend/obj/
-backend/.vs/
-
-# ===== Docker =====
-docker-compose.override.yml
-.docker/
+# ── 5. Infrastructure ───────────────────────────────────────────────────────
+.docker/

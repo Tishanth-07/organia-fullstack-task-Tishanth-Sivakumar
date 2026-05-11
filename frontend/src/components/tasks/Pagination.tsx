@@ -2,39 +2,68 @@
 
 import { useTasksStore } from '@/store/tasks-store';
 
+/**
+ * Pagination Component
+ * Orchestrates the navigation across paginated task data sets.
+ * Features smart ellipsis logic to handle large page counts and a
+ * dynamic page size selector.
+ */
 export default function Pagination() {
   const { pagedTasks, query, fetchTasks } = useTasksStore();
+  
+  // ── Early Exit ─────────────────────────────────────────────────────────────
+  
+  // No pagination UI needed if there is no data or only one page
   if (!pagedTasks || pagedTasks.totalPages <= 1) return null;
 
   const { page, totalPages, totalCount, pageSize } = pagedTasks;
+
+  // Calculate the range of items currently displayed
   const from = (page - 1) * pageSize + 1;
   const to   = Math.min(page * pageSize, totalCount);
 
-  const go = (p: number) => fetchTasks({ page: p });
+  // ── Helper: Navigation Action ─────────────────────────────────────────────
 
-  // Build page numbers to show: always first, last, and ±1 around current
-  const pages: (number | '…')[] = [];
-  const show = new Set<number>();
+  const navigateToPage = (p: number) => fetchTasks({ page: p });
+
+  // ── Logic: Smart Page Range Generation ────────────────────────────────────
+
+  /**
+   * Generates a sequence of page numbers and ellipses.
+   * Pattern: [First] ... [Current-1] [Current] [Current+1] ... [Last]
+   */
+  const pageItems: (number | '…')[] = [];
+  const visiblePages = new Set<number>();
+  
   [1, page - 1, page, page + 1, totalPages].forEach((p) => {
-    if (p >= 1 && p <= totalPages) show.add(p);
+    if (p >= 1 && p <= totalPages) visiblePages.add(p);
   });
-  const sorted = [...show].sort((a, b) => a - b);
-  sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1] > 1) pages.push('…');
-    pages.push(p);
+  
+  const sortedPages = [...visiblePages].sort((a, b) => a - b);
+  
+  sortedPages.forEach((p, i) => {
+    // Add ellipsis if there's a gap between sequential numbers
+    if (i > 0 && p - sortedPages[i - 1] > 1) pageItems.push('…');
+    pageItems.push(p);
   });
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="pagination-root">
+    <div className="pagination-root animate-fade-in">
+      
+      {/* Informational Summary */}
       <span className="pagination-info">
-        {from}–{to} of {totalCount} tasks
+        Showing <span className="font-bold text-[var(--color-fg-2)]">{from}–{to}</span> of {totalCount}
       </span>
 
+      {/* Control Navigation */}
       <div className="pagination-controls">
-        {/* Prev */}
+        
+        {/* Navigation: Previous Page */}
         <button
           className="page-btn"
-          onClick={() => go(page - 1)}
+          onClick={() => navigateToPage(page - 1)}
           disabled={page === 1}
           aria-label="Previous page"
         >
@@ -43,16 +72,16 @@ export default function Pagination() {
           </svg>
         </button>
 
-        {/* Page numbers */}
-        {pages.map((p, i) =>
+        {/* Dynamic Page Number Grid */}
+        {pageItems.map((p, i) =>
           p === '…' ? (
             <span key={`ellipsis-${i}`} className="page-ellipsis">…</span>
           ) : (
             <button
               key={p}
               className={`page-btn ${p === page ? 'page-btn-active' : ''}`}
-              onClick={() => go(p as number)}
-              aria-label={`Page ${p}`}
+              onClick={() => navigateToPage(p as number)}
+              aria-label={`Go to page ${p}`}
               aria-current={p === page ? 'page' : undefined}
             >
               {p}
@@ -60,10 +89,10 @@ export default function Pagination() {
           )
         )}
 
-        {/* Next */}
+        {/* Navigation: Next Page */}
         <button
           className="page-btn"
-          onClick={() => go(page + 1)}
+          onClick={() => navigateToPage(page + 1)}
           disabled={page === totalPages}
           aria-label="Next page"
         >
@@ -73,7 +102,7 @@ export default function Pagination() {
         </button>
       </div>
 
-      {/* Page size selector */}
+      {/* Configuration: Page Size Selector */}
       <div className="page-size-wrap">
         <span className="page-size-label">Per page</span>
         <select
@@ -87,6 +116,7 @@ export default function Pagination() {
           ))}
         </select>
       </div>
+
     </div>
   );
 }

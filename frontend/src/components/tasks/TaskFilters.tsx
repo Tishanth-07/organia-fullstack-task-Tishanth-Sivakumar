@@ -3,14 +3,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTasksStore } from '@/store/tasks-store';
 import type { TaskStatus } from '@/types/task';
-import { TASK_STATUS_LABELS } from '@/types/task';
 
-const STATUS_OPTIONS: Array<{ value: TaskStatus | ''; label: string }> = [
-  { value: '',           label: 'All Tasks'   },
-  { value: 'ToDo',       label: 'To Do'        },
-  { value: 'InProgress', label: 'In Progress'  },
-  { value: 'Completed',  label: 'Completed'    },
-];
+// ── Constants & Configuration ────────────────────────────────────────────────
 
 const SORT_OPTIONS = [
   { value: 'createdAt', label: 'Date Created' },
@@ -19,37 +13,57 @@ const SORT_OPTIONS = [
   { value: 'title',     label: 'Title'        },
 ];
 
+/**
+ * TaskFilters Component
+ * Provides a comprehensive interface for searching, filtering by status, 
+ * and sorting the task collection. Features a debounced search to optimize API calls.
+ */
 export default function TaskFilters() {
   const { query, pagedTasks, fetchTasks, openCreate } = useTasksStore();
+  
+  // ── State: Search Debouncing ───────────────────────────────────────────────
+  
   const [search, setSearch] = useState(query.search ?? '');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Debounced search
+  /**
+   * Updates the local search state and triggers a debounced API fetch.
+   */
   const handleSearch = useCallback((val: string) => {
     setSearch(val);
     clearTimeout(debounceRef.current);
+    
     debounceRef.current = setTimeout(() => {
+      // Fetch with new search term, resetting to page 1
       fetchTasks({ search: val || undefined, page: 1 });
     }, 350);
   }, [fetchTasks]);
 
+  // ── Handlers: Status & Sorting ─────────────────────────────────────────────
+  
+  /** Filters the task list by a specific status */
   const handleStatus = (val: string) => {
     fetchTasks({ status: (val as TaskStatus) || undefined, page: 1 });
   };
 
+  /** Changes the sorting criteria */
   const handleSort = (val: string) => {
-    fetchTasks({ sortBy: val as never, page: 1 });
+    fetchTasks({ sortBy: val as any, page: 1 });
   };
 
+  /** Toggles between Ascending and Descending order */
   const toggleOrder = () => {
     fetchTasks({ sortOrder: query.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 });
   };
 
   const counts = pagedTasks;
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="filters-root">
-      {/* ── Summary chips ──────────────────────────────────────── */}
+      
+      {/* ── Section: Summary & Status Chips ────────────────── */}
       {counts && (
         <div className="summary-chips">
           <button
@@ -59,6 +73,7 @@ export default function TaskFilters() {
             <span className="chip-count">{counts.toDoCount + counts.inProgressCount + counts.completedCount}</span>
             All
           </button>
+          
           <button
             className={`summary-chip ${query.status === 'ToDo' ? 'chip-active chip-todo' : ''}`}
             onClick={() => handleStatus('ToDo')}
@@ -67,6 +82,7 @@ export default function TaskFilters() {
             <span className="chip-count">{counts.toDoCount}</span>
             To Do
           </button>
+          
           <button
             className={`summary-chip ${query.status === 'InProgress' ? 'chip-active chip-progress' : ''}`}
             onClick={() => handleStatus('InProgress')}
@@ -75,6 +91,7 @@ export default function TaskFilters() {
             <span className="chip-count">{counts.inProgressCount}</span>
             In Progress
           </button>
+          
           <button
             className={`summary-chip ${query.status === 'Completed' ? 'chip-active chip-done' : ''}`}
             onClick={() => handleStatus('Completed')}
@@ -83,6 +100,8 @@ export default function TaskFilters() {
             <span className="chip-count">{counts.completedCount}</span>
             Completed
           </button>
+
+          {/* Overdue Indicator */}
           {counts.overdueCount > 0 && (
             <span className="summary-chip chip-overdue">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -96,9 +115,9 @@ export default function TaskFilters() {
         </div>
       )}
 
-      {/* ── Controls row ───────────────────────────────────────── */}
+      {/* ── Section: Search & Sorting Controls ──────────────── */}
       <div className="filter-controls">
-        {/* Search */}
+        {/* Search Input */}
         <div className="search-wrap">
           <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8" />
@@ -126,7 +145,7 @@ export default function TaskFilters() {
           )}
         </div>
 
-        {/* Sort by */}
+        {/* Sort Criteria Selection */}
         <div className="select-wrap">
           <svg className="select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="21" y1="10" x2="7" y2="10" />
@@ -146,11 +165,11 @@ export default function TaskFilters() {
           </select>
         </div>
 
-        {/* Sort direction */}
+        {/* Sort Order Toggle */}
         <button
           className="sort-dir-btn"
           onClick={toggleOrder}
-          title={query.sortOrder === 'asc' ? 'Ascending — click for descending' : 'Descending — click for ascending'}
+          title={query.sortOrder === 'asc' ? 'Switch to Descending' : 'Switch to Ascending'}
           aria-label="Toggle sort direction"
         >
           {query.sortOrder === 'asc' ? (
@@ -166,10 +185,9 @@ export default function TaskFilters() {
           )}
         </button>
 
-        {/* Spacer */}
         <div className="filter-spacer" />
 
-        {/* New task button */}
+        {/* Global Action: Create Task */}
         <button className="btn-primary filter-new-btn" onClick={openCreate}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="12" y1="5" x2="12" y2="19" />

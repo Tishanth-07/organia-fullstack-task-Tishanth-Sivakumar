@@ -9,25 +9,39 @@ import { registerSchema, RegisterSchema } from '@/schemas/authSchemas'
 import { authApi } from '@/lib/api'
 import { toast } from 'sonner'
 import {
-  AuthHeading, EyeOpen, EyeOff, FieldError,
+  AuthHeading, EyeOpen, EyeOff,
   Label, PasswordStrengthBar, SubmitButton, getPasswordStrength, inputCls,
+  FieldError,
 } from '@/components/auth/AuthUI'
 
 export function RegisterForm() {
   const router = useRouter()
+
+  // ── State: UI Controls ─────────────────────────────────────────────────────
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  // ── Form Configuration (React Hook Form + Zod) ──────────────────────────────
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterSchema>({ resolver: zodResolver(registerSchema) })
+  } = useForm<RegisterSchema>({ 
+    resolver: zodResolver(registerSchema),
+    mode: 'onTouched'
+  })
 
+  // Watch password field to update strength meter in real-time
   const pwValue  = watch('password', '')
   const strength = getPasswordStrength(pwValue)
 
+  // ── Handlers: Registration ─────────────────────────────────────────────────
+
+  /**
+   * Processes account creation request.
+   * On success: Redirects to the verify-email page with user context.
+   */
   async function onSubmit(data: RegisterSchema) {
     try {
       await authApi.register({
@@ -43,22 +57,25 @@ export function RegisterForm() {
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Header Section */}
       <AuthHeading
         title="Create your account"
         subtitle={
           <>
-            Already have one?{' '}
-            <Link href="/auth/login" className="text-[var(--color-green-light)] hover:text-[var(--color-green-dim)] transition-colors font-semibold">
-              Sign in →
+            Already have an account?{' '}
+            <Link href="/auth/login" className="text-[var(--color-accent)] hover:text-[var(--color-green-light)] transition-colors font-semibold">
+              Sign in
             </Link>
           </>
         }
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Name row */}
+        {/* Name Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>First name</Label>
@@ -80,7 +97,7 @@ export function RegisterForm() {
           </div>
         </div>
 
-        {/* Email */}
+        {/* Identity Section */}
         <div>
           <Label>Work email</Label>
           <input
@@ -93,7 +110,7 @@ export function RegisterForm() {
           <FieldError message={errors.email?.message} />
         </div>
 
-        {/* Password */}
+        {/* Security Section */}
         <div>
           <Label>Password</Label>
           <div className="relative">
@@ -109,11 +126,11 @@ export function RegisterForm() {
               {showPw ? <EyeOff /> : <EyeOpen />}
             </button>
           </div>
+          {/* Password Strength Feedback */}
           {pwValue && <PasswordStrengthBar score={strength.score} color={strength.color} label={strength.label} />}
           <FieldError message={errors.password?.message} />
         </div>
 
-        {/* Confirm password */}
         <div>
           <Label>Confirm password</Label>
           <div className="relative">
@@ -132,11 +149,13 @@ export function RegisterForm() {
           <FieldError message={errors.confirmPassword?.message} />
         </div>
 
+        {/* Form Actions */}
         <div className="pt-1">
           <SubmitButton isSubmitting={isSubmitting} label="Create account" loadingLabel="Creating account…" />
         </div>
       </form>
 
+      {/* Legal Disclaimer */}
       <p className="text-center text-[0.72rem] text-[var(--color-fg-4)]">
         By creating an account you agree to our{' '}
         <a href="#" className="text-[var(--color-fg-3)] hover:text-[var(--color-fg-2)] underline underline-offset-2">Terms</a>

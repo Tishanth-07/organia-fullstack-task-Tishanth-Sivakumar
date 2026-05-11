@@ -2,6 +2,11 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  devIndicators: {
+    buildActivity: false,
+    appIsrStatus: false,
+  },
+
   // Allows the backend API to be called from server components if needed
   async rewrites() {
     return []

@@ -4,14 +4,20 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace backend.Configurations;
 
+/// <summary>
+/// Fluent API configuration for the User entity to define table structure and constraints.
+/// </summary>
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
+        // Define table name
         builder.ToTable("Users");
 
+        // Primary Key
         builder.HasKey(u => u.Id);
 
+        // Name constraints
         builder.Property(u => u.FirstName)
             .IsRequired()
             .HasMaxLength(50);
@@ -20,33 +26,29 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(50);
 
+        // Unique index for email to prevent duplicates at the database level
         builder.Property(u => u.Email)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(255);
+        
+        builder.HasIndex(u => u.Email)
+            .IsUnique();
 
-        builder.HasIndex(u => u.Email).IsUnique();
-
-        builder.Property(u => u.PasswordHash).IsRequired();
-
-        builder.Property(u => u.Role)
-            .HasConversion<string>()
+        // Security fields
+        builder.Property(u => u.PasswordHash)
             .IsRequired();
 
-        builder.Property(u => u.IsEmailVerified).IsRequired();
+        // Enum mapping: mapped as string for cross-platform compatibility and readability.
+        builder.Property(u => u.Role)
+            .HasConversion<string>()
+            .IsRequired()
+            .HasMaxLength(20);
 
-        builder.Property(u => u.EmailVerificationCodeHash).IsRequired(false);
-        builder.Property(u => u.EmailVerificationCodeExpiry).IsRequired(false);
-        builder.Property(u => u.PasswordResetCodeHash).IsRequired(false);
-        builder.Property(u => u.PasswordResetCodeExpiry).IsRequired(false);
-        builder.Property(u => u.LockoutEnd).IsRequired(false);
-        builder.Property(u => u.LastVerificationCodeSentAt).IsRequired(false);
+        // Default values
+        builder.Property(u => u.IsEmailVerified)
+            .HasDefaultValue(false);
 
-        builder.Ignore(u => u.FullName);
-        builder.Ignore(u => u.IsLockedOut);
-
-        builder.HasMany(u => u.Tasks)
-            .WithOne(t => t.User)
-            .HasForeignKey(t => t.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.Property(u => u.CreatedAt)
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
     }
 }

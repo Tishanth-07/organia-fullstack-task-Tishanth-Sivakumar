@@ -10,7 +10,11 @@ import TaskBoard from '@/components/tasks/TaskBoard';
 import TaskModal from '@/components/tasks/TaskModal';
 import DeleteConfirmModal from '@/components/tasks/DeleteConfirmModal';
 
-// ── Grab user from auth store / localStorage ───────────────────────────────────
+// ── Internal Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Retrieves the authenticated user object from storage safely.
+ */
 function getUser(): { name?: string; email?: string } | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -19,6 +23,9 @@ function getUser(): { name?: string; email?: string } | null {
   } catch { return null; }
 }
 
+/**
+ * Generates initials from a name or email for the avatar.
+ */
 function getInitials(name?: string, email?: string): string {
   if (name) {
     const parts = name.trim().split(' ');
@@ -29,6 +36,9 @@ function getInitials(name?: string, email?: string): string {
   return email ? email[0].toUpperCase() : 'U';
 }
 
+/**
+ * Returns a time-based greeting string.
+ */
 function greeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -36,50 +46,60 @@ function greeting(): string {
   return 'Good evening';
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
+// ── Main Dashboard Page ──────────────────────────────────────────────────────
 
+/**
+ * DashboardPage Component
+ * The primary authenticated view of the application.
+ */
 export default function DashboardPage() {
-  const router  = useRouter();
-  const [user, setUser]   = useState<{ name?: string; email?: string } | null>(null);
-  const [greet, setGreet] = useState('Hello');
-  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  
+  // ── State ──────────────────────────────────────────────────────────────────
+  
+  const [user, setUser]         = useState<{ name?: string; email?: string } | null>(null);
+  const [greet, setGreet]       = useState('Hello');
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    setUser(getUser());
-    setGreet(greeting());
-  }, []);
   const { fetchTasks, pagedTasks, openCreate } = useTasksStore();
   const logout = useAuthStore((s) => s.logout);
 
-  // Auth guard
+  // ── Lifecycle & Auth Guard ─────────────────────────────────────────────────
+  
   useEffect(() => {
     const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-    if (!token) { router.replace('/'); return; }
+    
+    if (!token) { 
+      router.replace('/'); 
+      return; 
+    }
+
+    setUser(getUser());
+    setGreet(greeting());
     fetchTasks();
   }, [fetchTasks, router]);
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
     router.replace('/');
   };
 
+  // ── Computed Props ─────────────────────────────────────────────────────────
+  
   const initials    = getInitials(user?.name, user?.email);
   const displayName = user?.name ?? user?.email ?? 'User';
   const counts      = pagedTasks;
 
-  return (
-    <div className="page-shell">
-      <div className="ambient ambient-1" aria-hidden />
-      <div className="ambient ambient-2" aria-hidden />
-      <div className="dot-grid"          aria-hidden />
+  // ── Render ─────────────────────────────────────────────────────────────────
 
-      {/* ── Navbar ───────────────────────────────────────────── */}
+  return (
+    <>
+      {/* ── Dashboard Navigation ────────────────────────────── */}
       <header className="dashboard-nav">
         <div className="nav-inner">
-          {/* Logo */}
           <div className="nav-logo">
             <div className="nav-logo-mark">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -91,7 +111,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="nav-right">
-            {/* New task shortcut */}
             <button className="nav-new-btn" onClick={openCreate} aria-label="Create new task">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -100,7 +119,6 @@ export default function DashboardPage() {
               <span>New Task</span>
             </button>
 
-            {/* Avatar menu */}
             <div className="avatar-wrap">
               <button
                 className="avatar-btn"
@@ -150,10 +168,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* ── Main content ─────────────────────────────────────── */}
+      {/* ── Main Dashboard Content ──────────────────────────── */}
       <main className="dashboard-main">
 
-        {/* Hero greeting */}
+        {/* Section: Greeting & Summary */}
         <div className="dash-hero animate-fade-up">
           <div>
             <h1 className="dash-greeting">
@@ -167,9 +185,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats bar */}
+        {/* Section: Analytics Stats Bar */}
         {counts && (
           <div className="stats-bar animate-fade-up delay-100">
+            {/* To Do Stat */}
             <div className="stat-card">
               <div className="stat-icon stat-icon-todo">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -186,6 +205,7 @@ export default function DashboardPage() {
 
             <div className="stat-divider" />
 
+            {/* In Progress Stat */}
             <div className="stat-card">
               <div className="stat-icon stat-icon-progress">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -201,6 +221,7 @@ export default function DashboardPage() {
 
             <div className="stat-divider" />
 
+            {/* Completed Stat */}
             <div className="stat-card">
               <div className="stat-icon stat-icon-done">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -214,6 +235,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Overdue Stat (Optional) */}
             {counts.overdueCount > 0 && (
               <>
                 <div className="stat-divider" />
@@ -233,7 +255,7 @@ export default function DashboardPage() {
               </>
             )}
 
-            {/* Progress bar */}
+            {/* Visual Progress Bar */}
             <div className="stat-progress-wrap">
               <div className="stat-progress-label">
                 <span>Overall progress</span>
@@ -259,20 +281,20 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Section: Filters & Search */}
         <div className="animate-fade-up delay-200">
           <TaskFilters />
         </div>
 
-        {/* Board */}
+        {/* Section: Task Board Grid */}
         <div className="animate-fade-up delay-300">
           <TaskBoard />
         </div>
       </main>
 
-      {/* ── Modals ───────────────────────────────────────────── */}
+      {/* ── Global Modals ───────────────────────────────────── */}
       <TaskModal />
       <DeleteConfirmModal />
-    </div>
+    </>
   );
 }

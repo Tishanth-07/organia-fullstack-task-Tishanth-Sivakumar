@@ -11,11 +11,13 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Database ──────────────────────────────────────────────────────────────────
+// ── Database Configuration ───────────────────────────────────────────────────
+// Configure PostgreSQL connection using the "DefaultConnection" string from appsettings or environment
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ── JWT Auth ──────────────────────────────────────────────────────────────────
+// ── JWT Authentication ────────────────────────────────────────────────────────
+// Setup JWT Bearer authentication with validation for Issuer, Audience, and Security Key
 var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["JwtSettings:Secret"] ?? "dev_super_secret_key_change_in_prod_32chars";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -29,27 +31,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer              = builder.Configuration["Jwt:Issuer"] ?? "organia-local",
             ValidAudience            = builder.Configuration["Jwt:Audience"] ?? "organia-local",
             IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew                = TimeSpan.Zero // no grace period on expiry
+            ClockSkew                = TimeSpan.Zero // Strict expiry check
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ── Services ──────────────────────────────────────────────────────────────────
+// ── Application Services ──────────────────────────────────────────────────────
+// Dependency Injection mapping for custom services and helpers
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<JwtHelper>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 
-// ── Controllers ───────────────────────────────────────────────────────────────
+// ── Controller & JSON Configuration ──────────────────────────────────────────
+// Configure controllers and ensure enums are serialized as strings for the frontend
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+
 builder.Services.AddEndpointsApiExplorer();
 
-// ── Swagger with JWT support ──────────────────────────────────────────────────
+// ── Swagger / API Documentation ──────────────────────────────────────────────
+// Configure Swagger with JWT Authorization support for local testing
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Nintro Task API", Version = "v1" });
@@ -70,28 +76,26 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
+// ── CORS Policy ───────────────────────────────────────────────────────────────
+// Allow local development origin and production placeholders
 builder.Services.AddCors(options =>
 {
+    var origins = (builder.Configuration["ALLOWED_ORIGINS"] ?? builder.Configuration["AllowedOrigins"])?.Split(',') 
+               ?? new[] { "http://localhost:3000" };
+
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000",
-                "http://localhost:5181",
-                "https://organia-frontend.vercel.app", // placeholder for production
-                "https://organia-frontend.onrender.com" // placeholder for production
-              )
+        policy.WithOrigins(origins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
-// ── Build ─────────────────────────────────────────────────────────────────────
+// ── Build Application ─────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// Global exception handler (must be first middleware)
+// Enable Global Exception Middleware as the first line of defense
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -102,18 +106,32 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
-app.UseAuthentication(); // must be before UseAuthorization
+app.UseAuthentication(); 
 app.UseAuthorization();
 
 // ── Health Check ──────────────────────────────────────────────────────────────
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+// Lightweight endpoint to monitor API health status
+app.MapGet("/health", () => Results.Ok(new { 
+    status = "healthy", 
+    timestamp = DateTime.UtcNow,
+    version = "1.0.0" 
+}));
 
 // ── Auto-Migrations ───────────────────────────────────────────────────────────
+// Apply pending migrations on startup to keep database schema in sync
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("AutoMigrate"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try 
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Database migration failed on startup.");
+    }
 }
 
 app.MapControllers();

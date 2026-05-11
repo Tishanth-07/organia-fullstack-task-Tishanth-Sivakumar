@@ -6,9 +6,12 @@ using System.Security.Claims;
 
 namespace backend.Controllers;
 
+/// <summary>
+/// Controller for managing user tasks. All endpoints require a valid JWT token.
+/// </summary>
 [ApiController]
 [Route("api/tasks")]
-[Authorize]
+[Authorize] // Enforce authentication for all endpoints in this controller
 [Produces("application/json")]
 public class TasksController : ControllerBase
 {
@@ -19,80 +22,109 @@ public class TasksController : ControllerBase
         _taskService = taskService;
     }
 
-    // ── Resolve caller's userId from JWT claim ────────────────────────────────
-    private Guid GetUserId()
-    {
-        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)
-               ?? User.FindFirstValue("sub")
-               ?? throw new UnauthorizedAccessException("User ID not found in token.");
-        return Guid.Parse(raw);
-    }
-
-    // ── GET /api/tasks ────────────────────────────────────────────────────────
-    /// <summary>Get paginated tasks for the current user.</summary>
+    /// <summary>
+    /// Retrieves a paginated list of tasks for the authenticated user.
+    /// Supports status filtering, searching, and custom sorting.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedTasksDto), 200)]
     public async Task<IActionResult> GetTasks([FromQuery] TaskQueryDto query)
     {
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims();
         var result = await _taskService.GetTasksAsync(userId, query);
         return Ok(result);
     }
 
-    // ── GET /api/tasks/{id} ───────────────────────────────────────────────────
-    /// <summary>Get a single task by ID.</summary>
+    /// <summary>
+    /// Fetches a single task by its unique ID.
+    /// </summary>
+    /// <param name="id">The GUID of the task.</param>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(TaskResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetTask(Guid id)
     {
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims();
         var task   = await _taskService.GetTaskByIdAsync(userId, id);
-        return task is null ? NotFound(new { message = "Task not found." }) : Ok(task);
+        
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found or access denied." });
+        }
+        
+        return Ok(task);
     }
 
-    // ── POST /api/tasks ───────────────────────────────────────────────────────
-    /// <summary>Create a new task.</summary>
+    /// <summary>
+    /// Creates a new task for the authenticated user.
+    /// </summary>
+    /// <param name="dto">Task creation data.</param>
     [HttpPost]
     [ProducesResponseType(typeof(TaskResponseDto), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         if (string.IsNullOrWhiteSpace(dto.Title))
-            return BadRequest(new { message = "Title is required." });
+        {
+            return BadRequest(new { message = "Task title is required." });
+        }
 
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims();
         var task   = await _taskService.CreateTaskAsync(userId, dto);
+        
         return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
     }
 
-    // ── PUT /api/tasks/{id} ───────────────────────────────────────────────────
-    /// <summary>Update an existing task.</summary>
+    /// <summary>
+    /// Updates an existing task's properties.
+    /// </summary>
+    /// <param name="id">The GUID of the task to update.</param>
+    /// <param name="dto">Updated task details.</param>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TaskResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateTask(Guid id, [FromBody] UpdateTaskDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var userId = GetUserId();
+        var userId = GetUserIdFromClaims();
         var task   = await _taskService.UpdateTaskAsync(userId, id, dto);
-        return task is null ? NotFound(new { message = "Task not found." }) : Ok(task);
+        
+        if (task == null)
+        {
+            return NotFound(new { message = "Task not found or access denied." });
+        }
+        
+        return Ok(task);
     }
 
-    // ── DELETE /api/tasks/{id} ────────────────────────────────────────────────
-    /// <summary>Delete a task.</summary>
+    /// <summary>
+    /// Permanently deletes a task by its unique ID.
+    /// </summary>
+    /// <param name="id">The GUID of the task to delete.</param>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> DeleteTask(Guid id)
     {
-        var userId  = GetUserId();
+        var userId  = GetUserIdFromClaims();
         var deleted = await _taskService.DeleteTaskAsync(userId, id);
-        return deleted ? NoContent() : NotFound(new { message = "Task not found." });
+        
+        if (!deleted)
+        {
+            return NotFound(new { message = "Task not found or access denied." });
+        }
+        
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Extracts the User ID from the JWT NameIdentifier claim.
+    /// </summary>
+    private Guid GetUserIdFromClaims()
+    {
+        var rawId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                 ?? User.FindFirstValue("sub")
+                 ?? throw new UnauthorizedAccessException("Session expired or invalid. Please log in again.");
+        
+        return Guid.Parse(rawId);
     }
 }

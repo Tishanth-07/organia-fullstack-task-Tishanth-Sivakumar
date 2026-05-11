@@ -7,6 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services;
 
+/// <summary>
+/// Service responsible for handling task-related operations including 
+/// creation, retrieval, updates, and deletion.
+/// </summary>
 public class TaskService : ITaskService
 {
     private readonly AppDbContext _db;
@@ -16,53 +20,44 @@ public class TaskService : ITaskService
         _db = db;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private static TaskResponseDto ToDto(TaskItem t) => new()
-    {
-        Id          = t.Id,
-        Title       = t.Title,
-        Description = t.Description,
-        Status      = t.Status.ToString(),
-        DueDate     = t.DueDate,
-        CreatedAt   = t.CreatedAt,
-        UpdatedAt   = t.UpdatedAt,
-        IsOverdue   = t.DueDate.HasValue
-                      && t.DueDate.Value < DateTime.UtcNow
-                      && t.Status != TaskStatus.Completed,
-    };
-
-    // ── Query ─────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Retrieves a paged list of tasks for a specific user with filtering and sorting.
+    /// </summary>
+    /// <param name="userId">The ID of the user owning the tasks.</param>
+    /// <param name="query">Filtering, sorting, and pagination parameters.</param>
+    /// <returns>A paged result containing task items and status summaries.</returns>
     public async Task<PagedTasksDto> GetTasksAsync(Guid userId, TaskQueryDto query)
     {
         var q = _db.Tasks.Where(t => t.UserId == userId);
 
-        // Filter by status
+        // 1. Filtering by Status
         if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<TaskStatus>(query.Status, true, out var status))
-            q = q.Where(t => t.Status == status);
-
-        // Search
-        if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var s = query.Search.Trim().ToLower();
-            q = q.Where(t => t.Title.ToLower().Contains(s) ||
-                              (t.Description != null && t.Description.ToLower().Contains(s)));
+            q = q.Where(t => t.Status == status);
         }
 
-        // Summary counts (before pagination, no status filter)
+        // 2. Keyword Search
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            q = q.Where(t => t.Title.ToLower().Contains(search) ||
+                              (t.Description != null && t.Description.ToLower().Contains(search)));
+        }
+
+        // 3. Status Summaries (calculated before pagination)
         var allUserTasks = _db.Tasks.Where(t => t.UserId == userId);
         var now = DateTime.UtcNow;
+        
         var toDoCount       = await allUserTasks.CountAsync(t => t.Status == TaskStatus.ToDo);
         var inProgressCount = await allUserTasks.CountAsync(t => t.Status == TaskStatus.InProgress);
         var completedCount  = await allUserTasks.CountAsync(t => t.Status == TaskStatus.Completed);
         var overdueCount    = await allUserTasks.CountAsync(t =>
             t.DueDate.HasValue && t.DueDate.Value < now && t.Status != TaskStatus.Completed);
 
-        // Total (after filters, before pagination)
+        // 4. Total Count (after filters, before pagination)
         var totalCount = await q.CountAsync();
 
-        // Sort
+        // 5. Sorting Logic
         q = (query.SortBy.ToLower(), query.SortOrder.ToLower()) switch
         {
             ("duedate",   "asc")  => q.OrderBy(t => t.DueDate),
@@ -74,11 +69,11 @@ public class TaskService : ITaskService
             ("updatedat", "asc")  => q.OrderBy(t => t.UpdatedAt),
             ("updatedat", _)      => q.OrderByDescending(t => t.UpdatedAt),
             _                     => query.SortOrder.ToLower() == "asc"
-                                        ? q.OrderBy(t => t.CreatedAt)
-                                        : q.OrderByDescending(t => t.CreatedAt),
+                                         ? q.OrderBy(t => t.CreatedAt)
+                                         : q.OrderByDescending(t => t.CreatedAt),
         };
 
-        // Pagination
+        // 6. Pagination
         var pageSize   = Math.Clamp(query.PageSize, 1, 50);
         var page       = Math.Max(query.Page, 1);
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -104,16 +99,18 @@ public class TaskService : ITaskService
         };
     }
 
-    // ── Get by ID ─────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Fetches a single task by its ID, ensuring it belongs to the specified user.
+    /// </summary>
     public async Task<TaskResponseDto?> GetTaskByIdAsync(Guid userId, Guid taskId)
     {
         var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId);
         return task is null ? null : ToDto(task);
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Creates a new task for the user.
+    /// </summary>
     public async Task<TaskResponseDto> CreateTaskAsync(Guid userId, CreateTaskDto dto)
     {
         var task = new TaskItem
@@ -130,8 +127,9 @@ public class TaskService : ITaskService
         return ToDto(task);
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Updates an existing task's properties.
+    /// </summary>
     public async Task<TaskResponseDto?> UpdateTaskAsync(Guid userId, Guid taskId, UpdateTaskDto dto)
     {
         var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId);
@@ -147,8 +145,9 @@ public class TaskService : ITaskService
         return ToDto(task);
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Permanently deletes a task.
+    /// </summary>
     public async Task<bool> DeleteTaskAsync(Guid userId, Guid taskId)
     {
         var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId);
@@ -158,4 +157,21 @@ public class TaskService : ITaskService
         await _db.SaveChangesAsync();
         return true;
     }
+
+    /// <summary>
+    /// Helper method to convert a TaskItem entity to a TaskResponseDto.
+    /// </summary>
+    private static TaskResponseDto ToDto(TaskItem t) => new()
+    {
+        Id          = t.Id,
+        Title       = t.Title,
+        Description = t.Description,
+        Status      = t.Status.ToString(),
+        DueDate     = t.DueDate,
+        CreatedAt   = t.CreatedAt,
+        UpdatedAt   = t.UpdatedAt,
+        IsOverdue   = t.DueDate.HasValue
+                      && t.DueDate.Value < DateTime.UtcNow
+                      && t.Status != TaskStatus.Completed,
+    };
 }

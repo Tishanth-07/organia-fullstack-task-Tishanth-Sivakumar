@@ -1,48 +1,35 @@
 using backend.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace backend.Data;
 
+/// <summary>
+/// The main database context for the application, responsible for managing 
+/// the connection to PostgreSQL and mapping entities to tables.
+/// </summary>
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
 
-    public DbSet<User> Users => Set<User>();
-    public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    // ── Entity Sets ───────────────────────────────────────────────────────────
+    
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<TaskItem> Tasks { get; set; } = null!;
 
+    /// <summary>
+    /// Configures the model mapping using Fluent API and external configuration classes.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // User config
-        modelBuilder.Entity<User>(u =>
-        {
-            u.HasIndex(x => x.Email).IsUnique();
-            u.Property(x => x.Email).HasMaxLength(256);
-            
-            u.Property(x => x.FirstName).HasMaxLength(50).IsRequired();
-            u.Property(x => x.LastName).HasMaxLength(50).IsRequired();
-            
-            u.Property(x => x.Role)
-             .HasConversion<string>()
-             .HasMaxLength(20);
-        });
+        // Automatically scan and apply all IEntityTypeConfiguration classes in this assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // TaskItem config
-        modelBuilder.Entity<TaskItem>(t =>
-        {
-            t.ToTable("Tasks");
-            
-            t.Property(x => x.Status)
-             .HasConversion<string>()
-             .HasMaxLength(20);
-
-            t.HasOne(x => x.User)
-             .WithMany(u => u.Tasks)
-             .HasForeignKey(x => x.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
-
-            t.HasIndex(x => new { x.UserId, x.Status });
-        });
+        // Ensure GUIDs are handled correctly for PostgreSQL
+        modelBuilder.HasPostgresExtension("uuid-ossp");
     }
 }

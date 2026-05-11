@@ -1,6 +1,11 @@
 import React from 'react'
 
-/* ── Eye icons ── */
+// ── Icons ──────────────────────────────────────────────────────────────────
+
+/** 
+ * EyeOpen Icon
+ * Used for showing/unmasking passwords in input fields.
+ */
 export const EyeOpen = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.413 8.245 7.148 5 12 5c4.851 0 8.587 3.245 10.158 6.678.118.258.118.57 0 .828-1.571 3.433-5.307 6.678-10.158 6.678-4.85 0-8.587-3.245-10.158-6.678z" />
@@ -8,19 +13,29 @@ export const EyeOpen = () => (
   </svg>
 )
 
+/** 
+ * EyeOff Icon
+ * Used for hiding/masking passwords in input fields.
+ */
 export const EyeOff = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.822 7.822L21 21m-2.228-2.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
   </svg>
 )
 
-/* ── Password strength ── */
+// ── Password Security ──────────────────────────────────────────────────────
+
+/**
+ * Calculates a numerical score (0-4) based on password complexity rules.
+ * @param pw - The password string to evaluate.
+ */
 export function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0
   if (pw.length >= 8)                                                        score++
   if (/[A-Z]/.test(pw))                                                      score++
   if (/\d/.test(pw))                                                          score++
   if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw))                     score++
+  
   const map: Record<number, { label: string; color: string }> = {
     0: { label: 'Too weak',  color: '#f87171' },
     1: { label: 'Weak',      color: '#fb923c' },
@@ -31,6 +46,10 @@ export function getPasswordStrength(pw: string): { score: number; label: string;
   return { score, ...map[score] }
 }
 
+/**
+ * PasswordStrengthBar
+ * A visual multi-segment bar indicating password complexity.
+ */
 export function PasswordStrengthBar({ score, color, label }: { score: number; color: string; label: string }) {
   return (
     <div className="space-y-1.5 mt-2">
@@ -48,19 +67,30 @@ export function PasswordStrengthBar({ score, color, label }: { score: number; co
   )
 }
 
-/* ── Field label ── */
+// ── Form Controls ─────────────────────────────────────────────────────────
+
+/** 
+ * Label Component
+ * Standardizes typography and spacing for all form field labels.
+ */
 export function Label({ children }: { children: React.ReactNode }) {
   return (
     <label className="field-label">{children}</label>
   )
 }
 
-/* ── Input class helper ── */
+/** 
+ * inputCls Helper
+ * Generates consistent CSS classes for input fields, handling error states.
+ */
 export function inputCls(hasError?: boolean) {
   return ['field-input', hasError ? 'error' : ''].filter(Boolean).join(' ')
 }
 
-/* ── Field error ── */
+/** 
+ * FieldError Component
+ * Displays validation error messages with consistent styling.
+ */
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null
   return (
@@ -73,7 +103,10 @@ export function FieldError({ message }: { message?: string }) {
   )
 }
 
-/* ── Alert banner ── */
+/** 
+ * AlertBanner Component
+ * Provides high-visibility feedback for global success or error states.
+ */
 export function AlertBanner({ type, message }: { type: 'error' | 'success'; message: string }) {
   const isError = type === 'error'
   return (
@@ -96,7 +129,10 @@ export function AlertBanner({ type, message }: { type: 'error' | 'success'; mess
   )
 }
 
-/* ── Submit button ── */
+/** 
+ * SubmitButton Component
+ * A primary action button with built-in loading state management.
+ */
 export function SubmitButton({
   isSubmitting,
   label,
@@ -121,7 +157,12 @@ export function SubmitButton({
   )
 }
 
-/* ── Auth heading ── */
+// ── Layout Components ─────────────────────────────────────────────────────
+
+/**
+ * AuthHeading Component
+ * Standardized header for all authentication forms.
+ */
 export function AuthHeading({
   icon,
   iconBg,
@@ -154,7 +195,10 @@ export function AuthHeading({
   )
 }
 
-/* ── Divider ── */
+/** 
+ * AuthDivider Component
+ * A visual separator used for social login or alternate auth methods.
+ */
 export function AuthDivider({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-3 my-6">

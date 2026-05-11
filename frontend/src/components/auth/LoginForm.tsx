@@ -19,8 +19,13 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const setAuth      = useAuthStore((s) => s.setAuth)
 
+  // ── State: UI Controls ─────────────────────────────────────────────────────
   const [showPw, setShowPw] = useState(false)
 
+  /**
+   * Lifecycle: Monitor URL parameters for cross-flow notifications.
+   * Handles success banners for verified emails or completed password resets.
+   */
   useEffect(() => {
     if (searchParams.get('verified') === 'true') {
       toast.success('Email verified! You can now sign in.')
@@ -30,12 +35,23 @@ export function LoginForm() {
     }
   }, [searchParams])
 
+  // ── Form Configuration (React Hook Form + Zod) ──────────────────────────────
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginSchema>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginSchema>({ 
+    resolver: zodResolver(loginSchema),
+    mode: 'onTouched'
+  })
 
+  // ── Handlers: Authentication ───────────────────────────────────────────────
+
+  /**
+   * Processes the login request.
+   * On success: Updates global auth store and redirects to dashboard.
+   * On failure: Displays a clear error message via toast.
+   */
   async function onSubmit(data: LoginSchema) {
     try {
       const response = await authApi.login(data)
@@ -47,22 +63,25 @@ export function LoginForm() {
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Header Section */}
       <AuthHeading
         title="Welcome back"
         subtitle={
           <>
             No account yet?{' '}
-            <Link href="/auth/register" className="text-[var(--color-green-light)] hover:text-[var(--color-green-dim)] transition-colors font-semibold">
-              Create one free →
+            <Link href="/auth/register" className="text-[var(--color-accent)] hover:text-[var(--color-green-light)] transition-colors font-semibold">
+              Create one free
             </Link>
           </>
         }
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Email */}
+        {/* Email Field */}
         <div>
           <Label>Email address</Label>
           <input
@@ -75,7 +94,7 @@ export function LoginForm() {
           <FieldError message={errors.email?.message} />
         </div>
 
-        {/* Password */}
+        {/* Password Field */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="field-label !mb-0">Password</label>
@@ -94,6 +113,7 @@ export function LoginForm() {
               autoComplete="current-password"
               className={`${inputCls(!!errors.password)} pr-11`}
             />
+            {/* Toggle Visibility */}
             <button
               type="button"
               onClick={() => setShowPw((p) => !p)}
@@ -106,12 +126,13 @@ export function LoginForm() {
           <FieldError message={errors.password?.message} />
         </div>
 
+        {/* Form Actions */}
         <div className="pt-1">
           <SubmitButton isSubmitting={isSubmitting} label="Sign in" loadingLabel="Signing in…" />
         </div>
       </form>
 
-      {/* Footer note */}
+      {/* Footer Legal & Privacy */}
       <p className="text-center text-[0.72rem] text-[var(--color-fg-4)]">
         By signing in you agree to our{' '}
         <a href="#" className="text-[var(--color-fg-3)] hover:text-[var(--color-fg-2)] underline underline-offset-2">Terms</a>

@@ -1,18 +1,26 @@
+# ── 1. OS & IDE Artifacts ───────────────────────────────────────────────────
 **/.DS_Store
 **/.git
 **/.gitignore
 **/.vs
 **/.vscode
+
+# ── 2. Build & Runtime Exclusions ──────────────────────────────────────────
 **/bin
 **/obj
 **/node_modules
 **/.next
 **/dist
+
+# ── 3. Specific Path Overrides ─────────────────────────────────────────────
 backend/bin
 backend/obj
 frontend/node_modules
 frontend/.next
 frontend/dist
+
+# ── 4. Security & Environment ──────────────────────────────────────────────
+# Prevent sensitive environment files from leaking into image layers
 .env
 .env.local
 docker-compose.override.yml
