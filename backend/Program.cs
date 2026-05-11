@@ -16,7 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── JWT Auth ──────────────────────────────────────────────────────────────────
-var jwtSecret = builder.Configuration["JwtSettings:Secret"]!;
+var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["JwtSettings:Secret"] ?? "dev_super_secret_key_change_in_prod_32chars";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -26,9 +26,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience            = builder.Configuration["JwtSettings:Audience"],
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ValidIssuer              = builder.Configuration["Jwt:Issuer"] ?? "organia-local",
+            ValidAudience            = builder.Configuration["Jwt:Audience"] ?? "organia-local",
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew                = TimeSpan.Zero // no grace period on expiry
         };
     });
@@ -77,10 +77,14 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000",
-                "https://localhost:3000"
+                "https://localhost:3000",
+                "http://localhost:5181",
+                "https://organia-frontend.vercel.app", // placeholder for production
+                "https://organia-frontend.onrender.com" // placeholder for production
               )
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -100,6 +104,18 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication(); // must be before UseAuthorization
 app.UseAuthorization();
+
+// ── Health Check ──────────────────────────────────────────────────────────────
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+// ── Auto-Migrations ───────────────────────────────────────────────────────────
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("AutoMigrate"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.MapControllers();
 
 app.Run();

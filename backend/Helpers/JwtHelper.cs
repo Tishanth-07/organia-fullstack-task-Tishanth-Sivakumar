@@ -17,10 +17,11 @@ public class JwtHelper
 
     public string GenerateToken(User user)
     {
-        var secret  = _config["JwtSettings:Secret"]!;
-        var issuer   = _config["JwtSettings:Issuer"]!;
-        var audience = _config["JwtSettings:Audience"]!;
-        var expiry   = int.Parse(_config["JwtSettings:ExpiryMinutes"]!);
+        var secret   = _config["Jwt:Key"]      ?? _config["JwtSettings:Secret"]!;
+        var issuer   = _config["Jwt:Issuer"]   ?? _config["JwtSettings:Issuer"] ?? "organia-local";
+        var audience = _config["Jwt:Audience"] ?? _config["JwtSettings:Audience"] ?? "organia-local";
+        var expiryStr = _config["Jwt:ExpiryMinutes"] ?? _config["JwtSettings:ExpiryMinutes"] ?? "60";
+        var expiry    = int.Parse(expiryStr);
 
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
