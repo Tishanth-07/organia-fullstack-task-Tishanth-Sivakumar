@@ -1,48 +1,61 @@
 # ===== OS =====
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
-# ===== Logs =====
-*.log
+# ===== IDEs =====
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.user
+*.userosscache
+*.sln.docstates
 
-# ===== Environment files =====
+# ===== Build & Dependencies =====
+node_modules/
+[Bb]in/
+[Oo]bj/
+dist/
+build/
+out/
+.next/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# ===== Environment & Secrets =====
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
+appsettings.Development.json
+appsettings.Production.json
+secrets.json
 
-# ===== Node / Next.js =====
+# ===== Logs & Temp =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.tmp
+*.bak
+*.cache
+
+# ===== Testing =====
+coverage/
+TestResults/
+
+# ===== Project Specific =====
 frontend/node_modules/
 frontend/.next/
 frontend/out/
-frontend/.turbo/
-frontend/.vercel/
-frontend/coverage/
-frontend/*.tsbuildinfo
-frontend/next-env.d.ts
-
-# ===== .NET / ASP.NET Core =====
 backend/bin/
 backend/obj/
 backend/.vs/
-backend/*.user
-backend/*.suo
-backend/TestResults/
-backend/Publish/
-backend/*.cache
-backend/*.log
-
-# ===== Root / general =====
-node_modules/
-dist/
-build/
-coverage/
-.vs/
-
-# Secret config files — never commit these
-appsettings.Development.json
-appsettings.Production.json
-*.bak
-
-
-# User secrets
-*.user
