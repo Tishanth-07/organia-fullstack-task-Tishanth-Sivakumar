@@ -47,7 +47,7 @@ builder.Services.AddEndpointsApiExplorer();
 // ── Swagger with JWT support ──────────────────────────────────────────────────
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Organia Task API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Nintro Task API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header. Example: 'Bearer {token}'",

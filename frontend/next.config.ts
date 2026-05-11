@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Allows the backend API to be called from server components if needed
+  async rewrites() {
+    return []
+  },
+}
 
-export default nextConfig;
+export default nextConfig

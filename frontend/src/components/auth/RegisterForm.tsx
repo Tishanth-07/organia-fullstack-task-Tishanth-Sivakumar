@@ -7,12 +7,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema, RegisterSchema } from '@/schemas/authSchemas'
 import { authApi } from '@/lib/api'
-import { EyeOpen, EyeOff, getPasswordStrength, PasswordStrengthBar } from './AuthUI'
+import { toast } from 'sonner'
+import {
+  AuthHeading, EyeOpen, EyeOff, FieldError,
+  Label, PasswordStrengthBar, SubmitButton, getPasswordStrength, inputCls,
+} from '@/components/auth/AuthUI'
 
 export function RegisterForm() {
   const router = useRouter()
-  const [serverError, setServerError] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const {
@@ -22,11 +25,10 @@ export function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterSchema>({ resolver: zodResolver(registerSchema) })
 
-  const pwValue = watch('password', '')
+  const pwValue  = watch('password', '')
   const strength = getPasswordStrength(pwValue)
 
   async function onSubmit(data: RegisterSchema) {
-    setServerError('')
     try {
       await authApi.register({
         firstName: data.firstName,
@@ -34,112 +36,113 @@ export function RegisterForm() {
         email:     data.email,
         password:  data.password,
       })
+      toast.success('Account created! Please verify your email.')
       router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`)
     } catch (err: any) {
-      setServerError(err.message)
+      toast.error(err.message || 'Registration failed. Please try again.')
     }
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold text-white">Create account</h2>
-        <p className="text-[#6b7280]">
-          Already have one?{' '}
-          <Link href="/auth/login" className="text-[#4ade80] hover:text-[#86efac] transition-colors font-medium">
-            Sign in
-          </Link>
-        </p>
-      </div>
+    <div className="space-y-6 animate-fade-up">
+      <AuthHeading
+        title="Create your account"
+        subtitle={
+          <>
+            Already have one?{' '}
+            <Link href="/auth/login" className="text-[var(--color-green-light)] hover:text-[var(--color-green-dim)] transition-colors font-semibold">
+              Sign in →
+            </Link>
+          </>
+        }
+      />
 
-      {serverError && (
-        <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-          <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-red-400 text-sm">{serverError}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-[#d1d5db]">First name</label>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Name row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>First name</Label>
             <input
               {...register('firstName')}
               placeholder="Jane"
-              className={`w-full bg-[#111827] border rounded-xl px-4 py-3 text-white placeholder-[#4b5563] text-sm outline-none transition-colors focus:border-[#16a34a] ${errors.firstName ? 'border-red-500/60' : 'border-[#1f2937]'}`}
+              className={inputCls(!!errors.firstName)}
             />
-            {errors.firstName && <p className="text-red-400 text-xs">{errors.firstName.message}</p>}
+            <FieldError message={errors.firstName?.message} />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-[#d1d5db]">Last name</label>
+          <div>
+            <Label>Last name</Label>
             <input
               {...register('lastName')}
               placeholder="Doe"
-              className={`w-full bg-[#111827] border rounded-xl px-4 py-3 text-white placeholder-[#4b5563] text-sm outline-none transition-colors focus:border-[#16a34a] ${errors.lastName ? 'border-red-500/60' : 'border-[#1f2937]'}`}
+              className={inputCls(!!errors.lastName)}
             />
-            {errors.lastName && <p className="text-red-400 text-xs">{errors.lastName.message}</p>}
+            <FieldError message={errors.lastName?.message} />
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-[#d1d5db]">Email address</label>
+        {/* Email */}
+        <div>
+          <Label>Work email</Label>
           <input
             {...register('email')}
             type="email"
-            placeholder="jane@example.com"
+            placeholder="jane@company.com"
             autoComplete="email"
-            className={`w-full bg-[#111827] border rounded-xl px-4 py-3 text-white placeholder-[#4b5563] text-sm outline-none transition-colors focus:border-[#16a34a] ${errors.email ? 'border-red-500/60' : 'border-[#1f2937]'}`}
+            className={inputCls(!!errors.email)}
           />
-          {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
+          <FieldError message={errors.email?.message} />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-[#d1d5db]">Password</label>
+        {/* Password */}
+        <div>
+          <Label>Password</Label>
           <div className="relative">
             <input
               {...register('password')}
               type={showPw ? 'text' : 'password'}
-              placeholder="Min. 8 chars, uppercase, number, symbol"
+              placeholder="Min 8 chars, uppercase, number, symbol"
               autoComplete="new-password"
-              className={`w-full bg-[#111827] border rounded-xl px-4 py-3 pr-11 text-white placeholder-[#4b5563] text-sm outline-none transition-colors focus:border-[#16a34a] ${errors.password ? 'border-red-500/60' : 'border-[#1f2937]'}`}
+              className={`${inputCls(!!errors.password)} pr-11`}
             />
-            <button type="button" onClick={() => setShowPw((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#9ca3af] transition-colors">
+            <button type="button" onClick={() => setShowPw((p) => !p)} tabIndex={-1}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg">
               {showPw ? <EyeOff /> : <EyeOpen />}
             </button>
           </div>
-          {pwValue && <PasswordStrengthBar {...strength} />}
-          {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
+          {pwValue && <PasswordStrengthBar score={strength.score} color={strength.color} label={strength.label} />}
+          <FieldError message={errors.password?.message} />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-[#d1d5db]">Confirm password</label>
+        {/* Confirm password */}
+        <div>
+          <Label>Confirm password</Label>
           <div className="relative">
             <input
               {...register('confirmPassword')}
               type={showConfirm ? 'text' : 'password'}
               placeholder="Re-enter password"
               autoComplete="new-password"
-              className={`w-full bg-[#111827] border rounded-xl px-4 py-3 pr-11 text-white placeholder-[#4b5563] text-sm outline-none transition-colors focus:border-[#16a34a] ${errors.confirmPassword ? 'border-red-500/60' : 'border-[#1f2937]'}`}
+              className={`${inputCls(!!errors.confirmPassword)} pr-11`}
             />
-            <button type="button" onClick={() => setShowConfirm((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#9ca3af] transition-colors">
+            <button type="button" onClick={() => setShowConfirm((p) => !p)} tabIndex={-1}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg">
               {showConfirm ? <EyeOff /> : <EyeOpen />}
             </button>
           </div>
-          {errors.confirmPassword && <p className="text-red-400 text-xs">{errors.confirmPassword.message}</p>}
+          <FieldError message={errors.confirmPassword?.message} />
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-[#16a34a] hover:bg-[#15803d] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Creating account…</>
-          ) : 'Create account'}
-        </button>
+        <div className="pt-1">
+          <SubmitButton isSubmitting={isSubmitting} label="Create account" loadingLabel="Creating account…" />
+        </div>
       </form>
+
+      <p className="text-center text-[0.72rem] text-[var(--color-fg-4)]">
+        By creating an account you agree to our{' '}
+        <a href="#" className="text-[var(--color-fg-3)] hover:text-[var(--color-fg-2)] underline underline-offset-2">Terms</a>
+        {' '}and{' '}
+        <a href="#" className="text-[var(--color-fg-3)] hover:text-[var(--color-fg-2)] underline underline-offset-2">Privacy Policy</a>.
+      </p>
     </div>
   )
 }

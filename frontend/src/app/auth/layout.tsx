@@ -1,67 +1,92 @@
-import type { Metadata } from 'next'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
 
-export const metadata: Metadata = {
-  title: 'Organia — Auth',
-}
-
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-[45%] flex-col justify-between p-12 bg-[#0f1a0f] border-r border-[#1a2e1a] relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#16a34a]/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#15803d]/10 blur-3xl pointer-events-none" />
+    /*
+      flex-1 fills the remaining height inside the root min-h-screen wrapper.
+      This means the auth shell always occupies full viewport — no blank space.
+    */
+    <div className="flex-1 flex font-body">
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#16a34a] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white" stroke="currentColor" strokeWidth={2}>
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor" stroke="none"/>
-                <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" strokeWidth={1.5}/>
-                <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">Organia</span>
+      {/* ── Left branding panel (lg+) ─────────────────── */}
+      <div className="hidden lg:flex flex-col justify-between w-[46%] p-12 border-r border-[var(--color-border)] bg-[var(--color-surface)]/60 relative overflow-hidden">
+
+        {/* Subtle inner glow */}
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[var(--color-accent-glow)] blur-[80px] pointer-events-none" />
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group w-fit">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center shadow-lg shadow-[var(--color-accent-glow)] group-hover:scale-105 transition-transform">
+            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="6" height="1.5" rx="0.75" fill="white" opacity="0.9"/>
+              <rect x="3" y="7.5" width="9" height="1.5" rx="0.75" fill="white" opacity="0.7"/>
+              <rect x="3" y="11" width="7" height="1.5" rx="0.75" fill="white" opacity="0.5"/>
+              <circle cx="15" cy="14" r="3.5" stroke="white" strokeWidth="1.4" fill="none"/>
+              <path d="M13.5 14l1 1 2-2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-        </div>
+          <span className="text-[1.05rem] font-bold tracking-tight font-display text-[var(--color-fg)]">Nintro</span>
+        </Link>
 
-        <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl font-bold text-white leading-tight">
-            Manage your tasks<br />
-            <span className="text-[#4ade80]">with clarity.</span>
-          </h1>
-          <p className="text-[#6b7280] text-lg leading-relaxed">
-            Organize, track, and complete your work — all in one clean workspace.
-          </p>
+        {/* Main copy */}
+        <div className="space-y-10">
+          <div>
+            <h2 className="text-[2.4rem] font-black leading-tight font-display text-[var(--color-fg)] mb-4">
+              Everything you need to
+              <span className="block gradient-text">do great work.</span>
+            </h2>
+            <p className="text-[var(--color-fg-3)] text-[0.88rem] leading-relaxed max-w-sm">
+              Join thousands of teams using Nintro to plan, track, and ship — with less chaos and more clarity.
+            </p>
+          </div>
 
-          {/* Feature list */}
-          <div className="space-y-3 pt-2">
+          {/* Stats */}
+          <div className="space-y-4">
             {[
-              'Create and organize tasks by status',
-              'Set due dates and track progress',
-              'Secure JWT-based authentication',
-            ].map((f) => (
-              <div key={f} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#16a34a]/20 border border-[#16a34a]/40 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-[#4ade80]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-[#9ca3af] text-sm">{f}</span>
+              { stat: '10k+', label: 'Active teams' },
+              { stat: '99.9%', label: 'Uptime SLA' },
+              { stat: '4.9★', label: 'Average rating' },
+            ].map(({ stat, label }) => (
+              <div key={label} className="flex items-center gap-4">
+                <div className="text-xl font-black text-[var(--color-fg)] font-display w-20">{stat}</div>
+                <div className="text-[0.78rem] text-[var(--color-fg-3)]">{label}</div>
               </div>
             ))}
           </div>
+
+          {/* Testimonial card */}
+          <div className="card p-5">
+            <p className="text-[var(--color-fg-2)] text-[0.8rem] leading-relaxed mb-4 italic">
+              "Nintro completely changed how our team operates. We ship 30% faster now."
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-[0.68rem] font-bold text-white">SR</div>
+              <div>
+                <p className="text-[0.78rem] font-semibold text-[var(--color-fg)]">Sarah R.</p>
+                <p className="text-[0.7rem] text-[var(--color-fg-3)]">Head of Product, Vercel</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p className="relative z-10 text-[#374151] text-xs">
-          © {new Date().getFullYear()} Organia Innovations Labs
-        </p>
+        <p className="text-[var(--color-fg-4)] text-[0.7rem]">© {new Date().getFullYear()} Nintro</p>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">{children}</div>
+      {/* ── Right form panel ──────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 overflow-y-auto">
+        <div className="w-full max-w-md py-8">
+
+          {/* Mobile logo */}
+          <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
+            <div className="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center">
+              <div className="w-3 h-3 rounded-sm bg-white/80" />
+            </div>
+            <span className="text-[0.95rem] font-bold font-display text-[var(--color-fg)]">Nintro</span>
+          </Link>
+
+          {children}
+        </div>
       </div>
     </div>
   )
