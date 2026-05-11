@@ -1,3 +1,4 @@
+using backend.Exceptions;
 using System.Net;
 using System.Text.Json;
 
@@ -41,6 +42,7 @@ public class GlobalExceptionMiddleware
             KeyNotFoundException        => (int)HttpStatusCode.NotFound,
             InvalidOperationException   => (int)HttpStatusCode.BadRequest,
             ArgumentException           => (int)HttpStatusCode.BadRequest,
+            TooManyRequestsException    => 429, // Too Many Requests
             _                           => (int)HttpStatusCode.InternalServerError
         };
 

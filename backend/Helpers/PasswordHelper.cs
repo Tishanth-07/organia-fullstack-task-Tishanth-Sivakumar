@@ -22,8 +22,11 @@ public static class PasswordHelper
     /// <summary>
     /// Hashes a plain-text password using BCrypt with a high cost factor for security.
     /// </summary>
-    public static string Hash(string password) =>
-        BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+    public static string Hash(string password)
+    {
+        if (string.IsNullOrEmpty(password)) throw new System.ArgumentException("Password cannot be empty");
+        return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+    }
 
     /// <summary>
     /// Verifies a plain-text password against a stored hash.

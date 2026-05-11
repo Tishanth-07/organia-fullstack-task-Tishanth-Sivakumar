@@ -17,8 +17,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
-// Setup JWT Bearer authentication with validation for Issuer, Audience, and Security Key
-var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["JwtSettings:Secret"] ?? "dev_super_secret_key_change_in_prod_32chars";
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+var jwtKey = !string.IsNullOrWhiteSpace(jwtSettings.Key) ? jwtSettings.Key : "dev_super_secret_key_change_in_prod_32chars";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -137,3 +138,6 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Aut
 app.MapControllers();
 
 app.Run();
+
+// Make Program class accessible to integration tests
+public partial class Program { }

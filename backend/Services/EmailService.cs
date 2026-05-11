@@ -79,8 +79,9 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
-            // We throw a generic error to the frontend to avoid leaking SMTP details
-            throw new InvalidOperationException("We encountered an issue sending the email. Please try again later.");
+            // We throw a generic error to the frontend to avoid leaking SMTP details.
+            // Using base Exception ensures this is treated as a 500 Internal Server Error.
+            throw new Exception("We encountered an issue sending the email. Please try again later.");
         }
     }
 

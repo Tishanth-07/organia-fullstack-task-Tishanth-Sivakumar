@@ -11,11 +11,11 @@ namespace backend.Helpers;
 /// </summary>
 public class JwtHelper
 {
-    private readonly IConfiguration _config;
+    private readonly JwtSettings _settings;
 
-    public JwtHelper(IConfiguration config)
+    public JwtHelper(Microsoft.Extensions.Options.IOptions<JwtSettings> options)
     {
-        _config = config;
+        _settings = options.Value;
     }
 
     /// <summary>
@@ -25,16 +25,11 @@ public class JwtHelper
     /// <returns>A string representing the encoded JWT token.</returns>
     public string GenerateToken(User user)
     {
-        // 1. Extract configuration with fallback support for different environments
-        var secret    = _config["Jwt:Key"]      ?? _config["JwtSettings:Secret"] ?? "dev_super_secret_key_change_in_prod_32chars";
-        var issuer    = _config["Jwt:Issuer"]   ?? _config["JwtSettings:Issuer"]   ?? "organia-local";
-        var audience  = _config["Jwt:Audience"] ?? _config["JwtSettings:Audience"] ?? "organia-local";
-        var expiryStr = _config["Jwt:ExpiryMinutes"] ?? "60";
-        
-        if (!int.TryParse(expiryStr, out var expiryMinutes))
-        {
-            expiryMinutes = 60;
-        }
+        // 1. Extract configuration from settings
+        var secret    = string.IsNullOrWhiteSpace(_settings.Key)    ? "dev_super_secret_key_change_in_prod_32chars" : _settings.Key;
+        var issuer    = string.IsNullOrWhiteSpace(_settings.Issuer) ? "organia-local" : _settings.Issuer;
+        var audience  = string.IsNullOrWhiteSpace(_settings.Audience) ? "organia-local" : _settings.Audience;
+        var expiryMinutes = _settings.ExpiryMinutes == 0 ? 60 : _settings.ExpiryMinutes;
 
         // 2. Setup Security Key and Signing Credentials
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));

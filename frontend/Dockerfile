@@ -28,6 +28,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Execute production build
 RUN npm run build
 
+# ── 2.5 Test Stage ───────────────────────────────────────────────────────────
+FROM builder AS test
+# Ensure tests pass before proceeding to runner
+RUN npm test
+
 # ── 3. Runner Stage ───────────────────────────────────────────────────────────
 # Final production image with minimal footprint and non-root execution.
 FROM node:20-alpine AS runner
@@ -41,9 +46,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 nextjs
 
 # Copy static assets and standalone server artifacts
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=test /app/public ./public
+COPY --from=test --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=test --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Switch to non-root user
 USER nextjs

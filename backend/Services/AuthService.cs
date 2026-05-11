@@ -2,6 +2,7 @@ using backend.Data;
 using backend.DTOs.Auth;
 using backend.Entities;
 using backend.Helpers;
+using backend.Exceptions;
 using backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -128,7 +129,7 @@ public class AuthService : IAuthService
             (DateTime.UtcNow - user.LastVerificationCodeSentAt.Value).TotalSeconds < ResendCooldownSecs)
         {
             var wait = ResendCooldownSecs - (int)(DateTime.UtcNow - user.LastVerificationCodeSentAt.Value).TotalSeconds;
-            throw new InvalidOperationException($"Please wait {wait} seconds before requesting a new code.");
+            throw new TooManyRequestsException($"Please wait {wait} seconds before requesting a new code.");
         }
 
         await SendAndSaveVerificationCodeAsync(user);
@@ -195,7 +196,7 @@ public class AuthService : IAuthService
             (DateTime.UtcNow - user.LastVerificationCodeSentAt.Value).TotalSeconds < ResendCooldownSecs)
         {
             var wait = ResendCooldownSecs - (int)(DateTime.UtcNow - user.LastVerificationCodeSentAt.Value).TotalSeconds;
-            throw new InvalidOperationException($"Please wait {wait} seconds before requesting a new code.");
+            throw new TooManyRequestsException($"Please wait {wait} seconds before requesting a new code.");
         }
 
         var code = OtpHelper.Generate();
