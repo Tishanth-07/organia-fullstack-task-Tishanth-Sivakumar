@@ -39,8 +39,8 @@ public class TaskService : ITaskService
         var q = _db.Tasks.Where(t => t.UserId == userId);
 
         // Filter by status
-        if (query.Status.HasValue)
-            q = q.Where(t => t.Status == query.Status.Value);
+        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<TaskStatus>(query.Status, true, out var status))
+            q = q.Where(t => t.Status == status);
 
         // Search
         if (!string.IsNullOrWhiteSpace(query.Search))

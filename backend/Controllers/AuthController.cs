@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace backend.Controllers;
 
 [ApiController]
-[Route("auth")]
+[Route("api/auth")]
 [Produces("application/json")]
 public class AuthController : ControllerBase
 {

@@ -23,7 +23,7 @@ public class UpdateTaskDto
 
 public class TaskQueryDto
 {
-    public TaskStatus? Status { get; set; }
+    public string? Status { get; set; }
     public string? Search { get; set; }
     public string SortBy { get; set; } = "createdAt";      // createdAt | dueDate | title | status
     public string SortOrder { get; set; } = "desc";         // asc | desc
