@@ -21,9 +21,18 @@ async function apiFetch<T>(
   return data as T
 }
 
-// Authenticated request (attaches JWT from localStorage)
+// Helper to get cookie on client side
+function getCookie(name: string) {
+  if (typeof document === 'undefined') return null
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(';').shift()
+  return null
+}
+
+// Authenticated request (attaches JWT from cookie)
 export function authFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const token = getCookie('token')
   return apiFetch<T>(endpoint, {
     ...options,
     headers: {
