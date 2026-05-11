@@ -127,6 +127,8 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Aut
     try 
     {
         db.Database.Migrate();
+        // Seed demo data for immediate platform exploration
+        DbSeeder.SeedAsync(db).GetAwaiter().GetResult();
     }
     catch (Exception ex)
     {
