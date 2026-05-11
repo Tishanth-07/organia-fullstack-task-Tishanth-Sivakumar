@@ -6,7 +6,7 @@ import type {
   UpdateTaskPayload,
 } from '@/types/task';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5181/api';
 
 // ── Auth token helper ─────────────────────────────────────────────────────────
 

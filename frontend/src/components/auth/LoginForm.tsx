@@ -97,7 +97,7 @@ export function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPw((p) => !p)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg z-10"
               tabIndex={-1}
             >
               {showPw ? <EyeOff /> : <EyeOpen />}

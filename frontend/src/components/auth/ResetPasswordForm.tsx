@@ -131,7 +131,7 @@ export function ResetPasswordForm() {
               className={`${inputCls(!!errors.newPassword)} pr-11`}
             />
             <button type="button" onClick={() => setShowPw((p) => !p)} tabIndex={-1}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg">
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg z-10">
               {showPw ? <EyeOff /> : <EyeOpen />}
             </button>
           </div>
@@ -151,7 +151,7 @@ export function ResetPasswordForm() {
               className={`${inputCls(!!errors.confirmPassword)} pr-11`}
             />
             <button type="button" onClick={() => setShowConfirm((p) => !p)} tabIndex={-1}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg">
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--color-fg-3)] hover:text-[var(--color-green-light)] transition-colors rounded-lg z-10">
               {showConfirm ? <EyeOff /> : <EyeOpen />}
             </button>
           </div>

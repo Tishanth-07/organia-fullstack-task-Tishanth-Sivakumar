@@ -40,8 +40,16 @@ function greeting(): string {
 
 export default function DashboardPage() {
   const router  = useRouter();
-  const [user]  = useState(getUser);
+  const [user, setUser]   = useState<{ name?: string; email?: string } | null>(null);
+  const [greet, setGreet] = useState('Hello');
+  const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setUser(getUser());
+    setGreet(greeting());
+  }, []);
   const { fetchTasks, pagedTasks, openCreate } = useTasksStore();
   const logout = useAuthStore((s) => s.logout);
 
@@ -149,7 +157,7 @@ export default function DashboardPage() {
         <div className="dash-hero animate-fade-up">
           <div>
             <h1 className="dash-greeting">
-              {greeting()}, <span className="gradient-text">{user?.name?.split(' ')[0] ?? 'there'}</span> 👋
+              {greet}, <span className="gradient-text">{user?.name?.split(' ')[0] ?? 'there'}</span> 👋
             </h1>
             <p className="dash-sub">
               {counts
