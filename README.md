@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>✨ Nintro</h1>
+  <h1> Nintro Task Management System </h1>
   <p><strong>The modern task management system for high-performing teams.</strong></p>
 
   <p>
@@ -98,6 +98,31 @@ The application will be available at:
 Nintro includes comprehensive interactive API documentation powered by Swagger. Once the backend is running, you can explore all available endpoints, required payloads, and test requests directly from your browser.
 
 - 🔗 **Swagger UI**: [http://localhost:5181/swagger](http://localhost:5181/swagger)
+
+### Available Endpoints
+
+> **Legend**: 
+> - ✅ **Required**: A valid JWT must be provided in the `Authorization: Bearer <token>` header.
+> - ❌ **Not Required**: Endpoint is public and does not require authentication.
+
+#### 🔐 Authentication (`/api/auth`)
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/register` | Register a new user account. | ❌ |
+| `POST` | `/login` | Authenticate and receive a JWT token. | ❌ |
+| `POST` | `/verify-email` | Verify email address using OTP. | ❌ |
+| `POST` | `/resend-verification` | Resend verification OTP code. | ❌ |
+| `POST` | `/forgot-password` | Initiate password recovery via email. | ❌ |
+| `POST` | `/reset-password` | Reset password using recovery OTP. | ❌ |
+
+#### 📝 Tasks (`/api/tasks`)
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :---: |
+| `GET` | `/` | Retrieve paginated tasks with filtering & sorting. | ✅ |
+| `POST` | `/` | Create a new task. | ✅ |
+| `GET` | `/{id}` | Fetch details of a specific task. | ✅ |
+| `PUT` | `/{id}` | Update an existing task. | ✅ |
+| `DELETE` | `/{id}` | Permanently delete a task. | ✅ |
 
 ---
 
