@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace backend.Entities;
 
-// Store as string in DB for readability: "ToDo", "InProgress", "Completed"
 public enum TaskStatus
 {
     ToDo,
@@ -10,10 +12,14 @@ public enum TaskStatus
 
 public class TaskItem
 {
+    [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [Required]
+    [MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
+    [MaxLength(2000)]
     public string? Description { get; set; }
 
     public TaskStatus Status { get; set; } = TaskStatus.ToDo;
@@ -24,9 +30,9 @@ public class TaskItem
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Foreign key — links task to its owner
+    // Foreign key
     public Guid UserId { get; set; }
 
-    // Navigation property — EF Core uses this for joins
+    [ForeignKey(nameof(UserId))]
     public User User { get; set; } = null!;
 }

@@ -1,4 +1,3 @@
-using backend.Configurations;
 using backend.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,38 +5,44 @@ namespace backend.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    // These map to "Users" and "TaskItems" tables in PostgreSQL
     public DbSet<User> Users => Set<User>();
-    public DbSet<TaskItem> TaskItems => Set<TaskItem>();
+    public DbSet<TaskItem> Tasks => Set<TaskItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply both fluent configurations
-        modelBuilder.ApplyConfiguration(new UserConfiguration());
-        modelBuilder.ApplyConfiguration(new TaskItemConfiguration());
-    }
-
-    // Automatically update UpdatedAt timestamp on every save
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        var entries = ChangeTracker.Entries()
-            .Where(e => e.State == EntityState.Modified);
-
-        foreach (var entry in entries)
+        // User config
+        modelBuilder.Entity<User>(u =>
         {
-            if (entry.Entity is User user)
-                user.UpdatedAt = DateTime.UtcNow;
+            u.HasIndex(x => x.Email).IsUnique();
+            u.Property(x => x.Email).HasMaxLength(256);
+            
+            u.Property(x => x.FirstName).HasMaxLength(50).IsRequired();
+            u.Property(x => x.LastName).HasMaxLength(50).IsRequired();
+            
+            u.Property(x => x.Role)
+             .HasConversion<string>()
+             .HasMaxLength(20);
+        });
 
-            if (entry.Entity is TaskItem task)
-                task.UpdatedAt = DateTime.UtcNow;
-        }
+        // TaskItem config
+        modelBuilder.Entity<TaskItem>(t =>
+        {
+            t.ToTable("Tasks");
+            
+            t.Property(x => x.Status)
+             .HasConversion<string>()
+             .HasMaxLength(20);
 
-        return base.SaveChangesAsync(cancellationToken);
+            t.HasOne(x => x.User)
+             .WithMany(u => u.Tasks)
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            t.HasIndex(x => new { x.UserId, x.Status });
+        });
     }
 }

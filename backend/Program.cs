@@ -39,6 +39,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<JwtHelper>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 // ── Controllers ───────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
