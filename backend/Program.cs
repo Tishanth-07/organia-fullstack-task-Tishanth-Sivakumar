@@ -99,10 +99,13 @@ var app = builder.Build();
 // Enable Global Exception Middleware as the first line of defense
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+// Always enable Swagger for the interview task evaluation
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Local development specific middleware can go here
 }
 
 app.UseHttpsRedirection();
