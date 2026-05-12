@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// ── Resend Email (HTTP API — works on Render free tier) ───
+// Old SmtpClient used port 587 which Render blocks on free tier since Sep 26 2025.
+// Resend uses HTTPS port 443 — never blocked anywhere.
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(o =>
+{
+    o.ApiToken = builder.Configuration["EmailSettings:ResendApiKey"]!;
+});
+builder.Services.AddTransient<IResend, ResendClient>();
 
 // ── Application Services ──────────────────────────────────────────────────────
 // Dependency Injection mapping for custom services and helpers

@@ -1,104 +1,96 @@
-using System.Net;
-using System.Net.Mail;
 using backend.Services.Interfaces;
+using Resend;
 
 namespace backend.Services;
 
-/// <summary>
-/// Service for sending transactional emails (Verification, Password Reset) via SMTP.
-/// </summary>
+// Uses Resend HTTP API (port 443) — works on ALL platforms including Render free tier.
+// Old SmtpClient used port 587 which Render blocked on Sep 26 2025.
 public class EmailService : IEmailService
 {
+    private readonly IResend _resend;
     private readonly IConfiguration _config;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IConfiguration config, ILogger<EmailService> logger)
+    public EmailService(IResend resend, IConfiguration config, ILogger<EmailService> logger)
     {
+        _resend = resend;
         _config = config;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Sends a 6-digit verification code to a new user.
-    /// </summary>
     public async Task SendVerificationCodeAsync(string toEmail, string firstName, string code)
     {
-        var subject = "Verify your Nintro account";
-        var body = BuildVerificationEmail(firstName, code);
-        await SendAsync(toEmail, subject, body, code);
+        var message = new EmailMessage();
+
+        // Free Resend tier: must use onboarding@resend.dev until you verify a domain
+        // Once domain verified: change to your actual from address from config
+        message.From = GetFromAddress();
+        message.To.Add(toEmail);
+        message.Subject = "Your Nintro verification code";
+        message.HtmlBody = BuildVerificationEmail(firstName, code);
+
+        await SendAsync(message, toEmail);
     }
 
-    /// <summary>
-    /// Sends a 6-digit password reset code to an existing user.
-    /// </summary>
     public async Task SendPasswordResetCodeAsync(string toEmail, string firstName, string code)
     {
-        var subject = "Reset your Nintro password";
-        var body = BuildPasswordResetEmail(firstName, code);
-        await SendAsync(toEmail, subject, body, code);
+        var message = new EmailMessage();
+        message.From = GetFromAddress();
+        message.To.Add(toEmail);
+        message.Subject = "Reset your Nintro password";
+        message.HtmlBody = BuildPasswordResetEmail(firstName, code);
+
+        await SendAsync(message, toEmail);
     }
 
-    /// <summary>
-    /// Core method to handle SMTP transmission.
-    /// </summary>
-    private async Task SendAsync(string toEmail, string subject, string htmlBody, string otpCode = "N/A")
+    private async Task SendAsync(EmailMessage message, string toEmail)
     {
-        // 1. Ingest SMTP configuration from appsettings or environment
-        var smtpHost     = _config["EmailSettings:SmtpHost"]!;
-        var smtpPortStr  = _config["EmailSettings:SmtpPort"] ?? "587";
-        var smtpUser     = _config["EmailSettings:SmtpUser"]!;
-        var smtpPassword = _config["EmailSettings:SmtpPassword"]!;
-        var fromEmail    = _config["EmailSettings:FromEmail"]!;
-        var fromName     = _config["EmailSettings:FromName"] ?? "Nintro Support";
-
-        if (!int.TryParse(smtpPortStr, out var smtpPort)) smtpPort = 587;
-
-        // 2. Setup SMTP Client
-        using var client = new SmtpClient(smtpHost, smtpPort)
-        {
-            Credentials = new NetworkCredential(smtpUser, smtpPassword),
-            EnableSsl   = true
-        };
-
-        // 3. Construct Email Message
-        var message = new MailMessage
-        {
-            From       = new MailAddress(fromEmail, fromName),
-            Subject    = subject,
-            Body       = htmlBody,
-            IsBodyHtml = true
-        };
-        message.To.Add(toEmail);
-
-        // 4. Transmission with error logging
         try
         {
-            await client.SendMailAsync(message);
-            _logger.LogInformation("Successfully sent email to {Email}", toEmail);
+            await _resend.EmailSendAsync(message);
+            _logger.LogInformation("Email sent successfully to {Email}", toEmail);
         }
         catch (Exception ex)
         {
-            // Render's Free Tier completely blocks outbound connections on Port 587 to prevent spam.
-            // Instead of crashing the API, we gracefully catch the error and print the OTP to the console
-            // so interviewers/testers can still complete the authentication flow by checking the logs!
-            _logger.LogWarning(ex, "SMTP transmission blocked (likely Render Free Tier). OTP Code for {Email} is: {Code}", toEmail, otpCode);
+            _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
+            throw new InvalidOperationException("Failed to send email. Please try again later.");
         }
     }
 
-    // ── Email Templates (HTML) ────────────────────────────────────────────────
-    
+    // Returns "Name <email>" format
+    private string GetFromAddress()
+    {
+        var fromName  = _config["EmailSettings:FromName"]  ?? "Nintro";
+        var fromEmail = _config["EmailSettings:FromEmail"] ?? "onboarding@resend.dev";
+        return $"{fromName} <{fromEmail}>";
+    }
+
+    // ── Email Templates ───────────────────────────────────────────────────────
+
     private static string BuildVerificationEmail(string firstName, string code) => $"""
         <!DOCTYPE html>
         <html>
-        <body style="font-family:sans-serif;background:#f4f4f4;padding:40px">
-          <div style="max-width:480px;margin:auto;background:#fff;border-radius:12px;padding:40px">
-            <h2 style="color:#6366f1;margin-bottom:8px">Verify your email</h2>
-            <p>Hi {firstName}, welcome to Nintro! Use the code below to verify your email address.</p>
-            <div style="background:#f5f3ff;border:2px dashed #6366f1;border-radius:8px;padding:24px;text-align:center;margin:24px 0">
-              <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#4f46e5">{code}</span>
+        <body style="font-family:'Segoe UI',sans-serif;background:#020509;padding:40px;margin:0">
+          <div style="max-width:480px;margin:auto;background:#050d14;border:1px solid #0f1d28;border-radius:16px;padding:40px">
+            <div style="margin-bottom:28px">
+              <div style="width:36px;height:36px;background:#16a34a;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">
+                <span style="color:white;font-weight:900;font-size:18px">N</span>
+              </div>
+              <span style="color:#f0f6ff;font-weight:700;font-size:16px;margin-left:10px;vertical-align:middle">Nintro</span>
             </div>
-            <p style="color:#6b7280;font-size:14px">This code expires in <strong>2 minutes</strong>. Do not share it with anyone.</p>
-            <p style="color:#6b7280;font-size:14px">If you didn't create an account, you can safely ignore this email.</p>
+            <h2 style="color:#f0f6ff;margin:0 0 8px;font-size:22px;font-weight:800">Verify your email</h2>
+            <p style="color:#8fa3b8;margin:0 0 28px;font-size:14px;line-height:1.6">
+              Hi {firstName}, welcome to Nintro! Enter the code below to verify your email address.
+            </p>
+            <div style="background:#081018;border:2px dashed #16a34a;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px">
+              <span style="font-size:40px;font-weight:900;letter-spacing:14px;color:#4ade80;font-family:monospace">{code}</span>
+            </div>
+            <p style="color:#3d5166;font-size:13px;margin:0 0 8px">
+              ⏱ This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
+            </p>
+            <p style="color:#3d5166;font-size:13px;margin:0">
+              If you didn't create a Nintro account, you can safely ignore this email.
+            </p>
           </div>
         </body>
         </html>
@@ -107,15 +99,27 @@ public class EmailService : IEmailService
     private static string BuildPasswordResetEmail(string firstName, string code) => $"""
         <!DOCTYPE html>
         <html>
-        <body style="font-family:sans-serif;background:#f4f4f4;padding:40px">
-          <div style="max-width:480px;margin:auto;background:#fff;border-radius:12px;padding:40px">
-            <h2 style="color:#6366f1;margin-bottom:8px">Reset your password</h2>
-            <p>Hi {firstName}, use the code below to reset your Nintro password.</p>
-            <div style="background:#f5f3ff;border:2px dashed #6366f1;border-radius:8px;padding:24px;text-align:center;margin:24px 0">
-              <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#4f46e5">{code}</span>
+        <body style="font-family:'Segoe UI',sans-serif;background:#020509;padding:40px;margin:0">
+          <div style="max-width:480px;margin:auto;background:#050d14;border:1px solid #0f1d28;border-radius:16px;padding:40px">
+            <div style="margin-bottom:28px">
+              <div style="width:36px;height:36px;background:#16a34a;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">
+                <span style="color:white;font-weight:900;font-size:18px">N</span>
+              </div>
+              <span style="color:#f0f6ff;font-weight:700;font-size:16px;margin-left:10px;vertical-align:middle">Nintro</span>
             </div>
-            <p style="color:#6b7280;font-size:14px">This code expires in <strong>2 minutes</strong>. Do not share it with anyone.</p>
-            <p style="color:#6b7280;font-size:14px">If you didn't request this, please secure your account immediately.</p>
+            <h2 style="color:#f0f6ff;margin:0 0 8px;font-size:22px;font-weight:800">Reset your password</h2>
+            <p style="color:#8fa3b8;margin:0 0 28px;font-size:14px;line-height:1.6">
+              Hi {firstName}, use the code below to reset your Nintro password.
+            </p>
+            <div style="background:#081018;border:2px dashed #f87171;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px">
+              <span style="font-size:40px;font-weight:900;letter-spacing:14px;color:#f87171;font-family:monospace">{code}</span>
+            </div>
+            <p style="color:#3d5166;font-size:13px;margin:0 0 8px">
+              ⏱ This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
+            </p>
+            <p style="color:#3d5166;font-size:13px;margin:0">
+              If you didn't request this reset, please secure your account immediately.
+            </p>
           </div>
         </body>
         </html>
