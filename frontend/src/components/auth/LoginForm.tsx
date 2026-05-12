@@ -80,7 +80,7 @@ export function LoginForm() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form method="POST" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Email Field */}
         <div>
           <Label>Email address</Label>

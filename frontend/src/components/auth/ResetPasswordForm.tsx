@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,6 +23,15 @@ export function ResetPasswordForm() {
   // ── State: UI Controls ─────────────────────────────────────────────────────
   const [showPw, setShowPw]           = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [cooldown, setCooldown]       = useState(0)
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldown])
 
   // ── Form Configuration (React Hook Form + Zod) ──────────────────────────────
   const {
@@ -58,6 +68,22 @@ export function ResetPasswordForm() {
     }
   }
 
+  /**
+   * Requests a new reset code.
+   */
+  async function handleResend() {
+    setResendLoading(true)
+    try {
+      await authApi.forgotPassword({ email })
+      toast.success('A new reset code has been sent.')
+      setCooldown(60)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend code.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -78,7 +104,7 @@ export function ResetPasswordForm() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form method="POST" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Code Field */}
         <div>
           <Label>Reset code</Label>
@@ -135,6 +161,21 @@ export function ResetPasswordForm() {
           <SubmitButton isSubmitting={isSubmitting} label="Reset password" loadingLabel="Resetting…" />
         </div>
       </form>
+
+      {/* Resend Actions */}
+      <div className="text-center space-y-1.5">
+        <p className="text-[var(--color-fg-3)] text-[0.8rem]">Didn't receive a code?</p>
+        {cooldown > 0 ? (
+          <p className="text-[var(--color-fg-3)] text-[0.8rem]">
+            Resend in <span className="text-[var(--color-green-light)] font-mono font-bold">{cooldown}s</span>
+          </p>
+        ) : (
+          <button type="button" onClick={handleResend} disabled={resendLoading}
+            className="text-[var(--color-accent)] hover:text-[var(--color-green-light)] text-[0.8rem] font-semibold transition-colors disabled:opacity-50">
+            {resendLoading ? 'Sending…' : 'Resend code'}
+          </button>
+        )}
+      </div>
 
       {/* Back Link */}
       <div className="text-center">

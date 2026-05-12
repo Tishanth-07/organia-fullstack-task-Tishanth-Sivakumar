@@ -4,8 +4,9 @@
 
   <p>
     <img src="https://img.shields.io/badge/.NET_8-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 8" />
-    <img src="https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
+    <img src="https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
     <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS_v3-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
     <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
   </p>
 </div>
@@ -25,7 +26,7 @@ Nintro bridges the gap between complex project management tools and simple to-do
 | Category | Technology | Description |
 | :--- | :--- | :--- |
 | **Backend** | .NET 8 (C#) | Robust API with Entity Framework Core and PostgreSQL 16. |
-| **Frontend** | Next.js 14 | App Router, TypeScript, Tailwind CSS, and Zustand. |
+| **Frontend** | Next.js 15 | App Router, TypeScript, Tailwind CSS v3, and Zustand. |
 | **Auth** | JWT & BCrypt | Secure HTTP-only cookies, role management, and OTP verification. |
 | **Infra** | Docker | Fully containerized environment using `docker-compose`. |
 | **Testing** | xUnit & Jest | 100% test pass rate across API integrations and UI components. |

@@ -74,7 +74,7 @@ export function RegisterForm() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form method="POST" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Name Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div>

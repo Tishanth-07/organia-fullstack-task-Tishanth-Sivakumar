@@ -72,7 +72,7 @@ export function ForgotPasswordForm() {
         </div>
       ) : (
         /* Entry State: Initial Email Request */
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form method="POST" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <Label>Email address</Label>
             <input
