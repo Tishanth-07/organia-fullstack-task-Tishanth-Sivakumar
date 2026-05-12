@@ -1,53 +1,77 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using backend.Services.Interfaces;
-using Resend;
 
 namespace backend.Services;
 
-// Uses Resend HTTP API (port 443) — works on ALL platforms including Render free tier.
-// Old SmtpClient used port 587 which Render blocked on Sep 26 2025.
+// Uses Mailjet HTTP API (port 443) — bypasses Render free tier SMTP blocks and allows arbitrary recipients
 public class EmailService : IEmailService
 {
-    private readonly IResend _resend;
+    private readonly HttpClient _httpClient;
     private readonly IConfiguration _config;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IResend resend, IConfiguration config, ILogger<EmailService> logger)
+    public EmailService(HttpClient httpClient, IConfiguration config, ILogger<EmailService> logger)
     {
-        _resend = resend;
+        _httpClient = httpClient;
         _config = config;
         _logger = logger;
     }
 
     public async Task SendVerificationCodeAsync(string toEmail, string firstName, string code)
     {
-        var message = new EmailMessage();
-
-        // Free Resend tier: must use onboarding@resend.dev until you verify a domain
-        // Once domain verified: change to your actual from address from config
-        message.From = GetFromAddress();
-        message.To.Add(toEmail);
-        message.Subject = "Your Nintro verification code";
-        message.HtmlBody = BuildVerificationEmail(firstName, code);
-
-        await SendAsync(message, toEmail);
+        var subject = "Your Nintro verification code";
+        var htmlBody = BuildVerificationEmail(firstName, code);
+        await SendEmailAsync(toEmail, subject, htmlBody);
     }
 
     public async Task SendPasswordResetCodeAsync(string toEmail, string firstName, string code)
     {
-        var message = new EmailMessage();
-        message.From = GetFromAddress();
-        message.To.Add(toEmail);
-        message.Subject = "Reset your Nintro password";
-        message.HtmlBody = BuildPasswordResetEmail(firstName, code);
-
-        await SendAsync(message, toEmail);
+        var subject = "Reset your Nintro password";
+        var htmlBody = BuildPasswordResetEmail(firstName, code);
+        await SendEmailAsync(toEmail, subject, htmlBody);
     }
 
-    private async Task SendAsync(EmailMessage message, string toEmail)
+    private async Task SendEmailAsync(string toEmail, string subject, string message)
     {
-        try
+        var publicKey = _config["EmailSettings:MailjetPublicKey"];
+        var privateKey = _config["EmailSettings:MailjetPrivateKey"];
+        var senderEmail = _config["EmailSettings:FromEmail"];
+        var senderName = _config["EmailSettings:FromName"] ?? "Nintro";
+
+        var payload = new
         {
-            await _resend.EmailSendAsync(message);
+            Messages = new[]
+            {
+                new
+                {
+                    From = new { Email = senderEmail, Name = senderName },
+                    To = new[] { new { Email = toEmail } },
+                    Subject = subject,
+                    HTMLPart = message
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(payload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        // Mailjet requires Basic Authentication using the Public and Private keys
+        var authString = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{publicKey}:{privateKey}"));
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authString);
+
+        try 
+        {
+            // Send via Port 443 HTTPS
+            var response = await _httpClient.PostAsync("https://api.mailjet.com/v3.1/send", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("MAILJET EMAIL ERROR: {Error}", error);
+                throw new InvalidOperationException("Failed to send email. Please try again later.");
+            }
             _logger.LogInformation("Email sent successfully to {Email}", toEmail);
         }
         catch (Exception ex)
@@ -55,14 +79,6 @@ public class EmailService : IEmailService
             _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
             throw new InvalidOperationException("Failed to send email. Please try again later.");
         }
-    }
-
-    // Returns "Name <email>" format
-    private string GetFromAddress()
-    {
-        var fromName  = _config["EmailSettings:FromName"]  ?? "Nintro";
-        var fromEmail = _config["EmailSettings:FromEmail"] ?? "onboarding@resend.dev";
-        return $"{fromName} <{fromEmail}>";
     }
 
     // ── Email Templates ───────────────────────────────────────────────────────
