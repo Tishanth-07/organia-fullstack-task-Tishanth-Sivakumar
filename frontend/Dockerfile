@@ -45,10 +45,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 nextjs
 
-# Copy static assets and standalone server artifacts
+# Copy full app
+COPY --from=test /app/package.json ./package.json
+COPY --from=test /app/node_modules ./node_modules
 COPY --from=test /app/public ./public
-COPY --from=test --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=test --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=test --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=test /app/next.config.ts ./next.config.ts
 
 # Switch to non-root user
 USER nextjs
@@ -58,5 +60,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Entrypoint: Execute the standalone server
-CMD ["node", "server.js"]
+# Entrypoint: Execute the standard Next.js server
+CMD ["npm", "start"]
