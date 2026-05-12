@@ -1,7 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Use standalone output for Docker (Render), but let Vercel use its native serverless output to prevent 404s
+  output: process.env.VERCEL ? undefined : "standalone",
   devIndicators: {
     buildActivity: false,
     appIsrStatus: false,
