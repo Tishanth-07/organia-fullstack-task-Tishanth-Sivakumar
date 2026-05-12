@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
         /* Success State: Instructions for next step */
         <div className="space-y-5">
           <p className="text-sm text-[var(--color-fg-3)] bg-[var(--color-accent-dim)] p-4 rounded-xl border border-[var(--color-accent)]/10">
-            We've sent a code to <span className="text-[var(--color-fg-2)] font-medium">{submittedEmail}</span>.
+            We&apos;ve sent a code to <span className="text-[var(--color-fg-2)] font-medium">{submittedEmail}</span>.
           </p>
           <button
             onClick={() => router.push(`/auth/reset-password?email=${encodeURIComponent(submittedEmail)}`)}

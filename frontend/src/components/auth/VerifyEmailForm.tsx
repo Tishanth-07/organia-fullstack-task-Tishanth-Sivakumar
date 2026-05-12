@@ -166,7 +166,7 @@ export function VerifyEmailForm() {
 
       {/* Resend Actions */}
       <div className="text-center space-y-1.5">
-        <p className="text-[var(--color-fg-3)] text-[0.8rem]">Didn't receive a code?</p>
+        <p className="text-[var(--color-fg-3)] text-[0.8rem]">Didn&apos;t receive a code?</p>
         {cooldown > 0 ? (
           <p className="text-[var(--color-fg-3)] text-[0.8rem]">
             Resend in <span className="text-[var(--color-green-light)] font-mono font-bold">{cooldown}s</span>

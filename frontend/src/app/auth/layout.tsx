@@ -58,7 +58,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {/* Dynamic Testimonial */}
           <div className="card p-5">
             <p className="text-[var(--color-fg-2)] text-[0.8rem] leading-relaxed mb-4 italic">
-              "Nintro completely changed how our team operates. We ship 30% faster now."
+              &quot;Nintro completely changed how our team operates. We ship 30% faster now.&quot;
             </p>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-[0.68rem] font-bold text-white">SR</div>
