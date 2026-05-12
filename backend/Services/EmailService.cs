@@ -1,11 +1,12 @@
-using System.Net.Http.Headers;
+using System.Net;
 using System.Text;
 using System.Text.Json;
+using backend.Exceptions;
 using backend.Services.Interfaces;
 
 namespace backend.Services;
 
-// Uses Mailjet HTTP API (port 443) — bypasses Render free tier SMTP blocks and allows arbitrary recipients
+// Uses a Google Apps Script webhook over HTTPS for lightweight assessment emails.
 public class EmailService : IEmailService
 {
     private readonly HttpClient _httpClient;
@@ -35,62 +36,86 @@ public class EmailService : IEmailService
 
     private async Task SendEmailAsync(string toEmail, string subject, string message)
     {
-        var publicKey = _config["EmailSettings:MailjetPublicKey"];
-        var privateKey = _config["EmailSettings:MailjetPrivateKey"];
-        var senderEmail = _config["EmailSettings:FromEmail"];
-        var senderName = _config["EmailSettings:FromName"] ?? "Nintro";
+        var webhookUrl = GetConfig("EmailSettings:GoogleWebhookUrl", "GOOGLE_WEBHOOK_URL");
+        var webhookSecret = GetConfig("EmailSettings:GoogleWebhookSecret", "GOOGLE_WEBHOOK_SECRET");
+        var senderName = GetConfig("EmailSettings:FromName", "FROM_NAME") ?? "Nintro";
 
-        if (string.IsNullOrEmpty(publicKey) || string.IsNullOrEmpty(privateKey) || string.IsNullOrEmpty(senderEmail))
+        if (IsMissingOrPlaceholder(webhookUrl))
         {
-            _logger.LogError("MAILJET CONFIG ERROR: Missing Public Key, Private Key, or FromEmail!");
-            throw new InvalidOperationException("Email service configuration is missing.");
+            _logger.LogError("Google email webhook config error: missing webhook URL.");
+            throw new EmailDeliveryException("Email service configuration is missing.");
         }
 
         var payload = new
         {
-            Messages = new[]
-            {
-                new
-                {
-                    From = new { Email = senderEmail, Name = senderName },
-                    To = new[] { new { Email = toEmail } },
-                    Subject = subject,
-                    HTMLPart = message
-                }
-            }
+            toEmail,
+            subject,
+            message,
+            fromName = senderName,
+            secret = webhookSecret
         };
 
         var json = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        // Use a fresh HttpRequestMessage for every call to prevent header pollution
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailjet.com/v3.1/send");
-        request.Content = content;
-
-        var authString = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{publicKey}:{privateKey}"));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authString);
-
-        try 
+        try
         {
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.PostAsync(webhookUrl, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("MAILJET API ERROR. Status: {Status}, Body: {Error}", response.StatusCode, errorContent);
-                throw new InvalidOperationException("Failed to send email. Please try again later.");
+                _logger.LogError(
+                    "Google email webhook HTTP error. Status: {Status}, To: {ToEmail}, Body: {Error}",
+                    response.StatusCode,
+                    toEmail,
+                    responseBody);
+
+                if (response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    throw new EmailDeliveryException(
+                        "Google webhook access denied. Redeploy the Apps Script web app with Execute as Me and Who has access set to Anyone.");
+                }
+
+                throw new EmailDeliveryException("Email webhook rejected the message. Please try again later.");
             }
-            
-            _logger.LogInformation("Email sent successfully to {Email}", toEmail);
+
+            var webhookResult = JsonSerializer.Deserialize<GoogleWebhookResponse>(
+                responseBody,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (!string.Equals(webhookResult?.Status, "success", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError(
+                    "Google email webhook returned an error. To: {ToEmail}, Body: {Error}",
+                    toEmail,
+                    responseBody);
+
+                throw new EmailDeliveryException(webhookResult?.Message ?? "Email webhook rejected the message.");
+            }
+
+            _logger.LogInformation("Email webhook sent successfully to {Email}", toEmail);
         }
-        catch (Exception ex)
+        catch (EmailDeliveryException)
         {
-            _logger.LogError(ex, "Exception while sending email to {Email}", toEmail);
-            throw new InvalidOperationException("Failed to send email. Please try again later.");
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timed out while sending email to {Email}", toEmail);
+            throw new EmailDeliveryException("Email webhook timed out. Please try again later.", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while sending email to {Email}", toEmail);
+            throw new EmailDeliveryException("Email webhook is currently unreachable. Please try again later.", ex);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Invalid response from email webhook while sending to {Email}", toEmail);
+            throw new EmailDeliveryException("Email webhook returned an invalid response. Please try again later.", ex);
         }
     }
-
-    // ── Email Templates ───────────────────────────────────────────────────────
 
     private static string BuildVerificationEmail(string firstName, string code) => $"""
         <!DOCTYPE html>
@@ -111,7 +136,7 @@ public class EmailService : IEmailService
               <span style="font-size:40px;font-weight:900;letter-spacing:14px;color:#4ade80;font-family:monospace">{code}</span>
             </div>
             <p style="color:#3d5166;font-size:13px;margin:0 0 8px">
-              ⏱ This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
+              This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
             </p>
             <p style="color:#3d5166;font-size:13px;margin:0">
               If you didn't create a Nintro account, you can safely ignore this email.
@@ -140,7 +165,7 @@ public class EmailService : IEmailService
               <span style="font-size:40px;font-weight:900;letter-spacing:14px;color:#f87171;font-family:monospace">{code}</span>
             </div>
             <p style="color:#3d5166;font-size:13px;margin:0 0 8px">
-              ⏱ This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
+              This code expires in <strong style="color:#8fa3b8">2 minutes</strong>.
             </p>
             <p style="color:#3d5166;font-size:13px;margin:0">
               If you didn't request this reset, please secure your account immediately.
@@ -149,4 +174,20 @@ public class EmailService : IEmailService
         </body>
         </html>
         """;
+
+    private string? GetConfig(string primaryKey, string fallbackKey)
+    {
+        var value = _config[primaryKey];
+        return IsMissingOrPlaceholder(value) ? _config[fallbackKey] : value;
+    }
+
+    private static bool IsMissingOrPlaceholder(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ||
+               value.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("placeholder", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private sealed record GoogleWebhookResponse(string? Status, string? Message);
 }

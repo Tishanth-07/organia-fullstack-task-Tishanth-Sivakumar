@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using backend.Data;
 using backend.DTOs.Auth;
+using backend.Exceptions;
 using backend.Helpers;
 using backend.Services.Interfaces;
 using Moq;
@@ -61,6 +62,42 @@ public class AuthControllerTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<MessageResponseDto>();
         body!.Message.Should().Contain("Account created");
+    }
+
+    [Fact]
+    public async Task Register_EmailProviderFailure_Returns502()
+    {
+        var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var dbDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+                if (dbDescriptor != null) services.Remove(dbDescriptor);
+                services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("IntegrationTestDb_Auth_EmailFailure"));
+
+                var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailService));
+                if (emailDescriptor != null) services.Remove(emailDescriptor);
+
+                var emailMock = new Mock<IEmailService>();
+                emailMock
+                    .Setup(x => x.SendVerificationCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                    .ThrowsAsync(new EmailDeliveryException("Email provider rejected the message. Please try again later."));
+                services.AddSingleton(emailMock.Object);
+            });
+        });
+
+        var client = factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            firstName = "Email",
+            lastName  = "Failure",
+            email     = "email-failure@controller.com",
+            password  = "StrongPass123!"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        var body = await response.Content.ReadFromJsonAsync<MessageResponseDto>();
+        body!.Message.Should().Contain("Email provider rejected");
     }
 
     [Fact]

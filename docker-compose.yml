@@ -48,10 +48,8 @@ services:
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       AutoMigrate: "true"
-      EmailSettings__SmtpHost: ${SMTP_HOST}
-      EmailSettings__SmtpPort: ${SMTP_PORT}
-      EmailSettings__SmtpUser: ${SMTP_USER}
-      EmailSettings__SmtpPassword: ${SMTP_PASS}
+      EmailSettings__GoogleWebhookUrl: ${GOOGLE_WEBHOOK_URL}
+      EmailSettings__GoogleWebhookSecret: ${GOOGLE_WEBHOOK_SECRET:-}
       EmailSettings__FromEmail: ${FROM_EMAIL}
       EmailSettings__FromName: ${FROM_NAME}
     ports:

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
+LoadDevelopmentEnvFile();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ── Email Configuration ──────────────────────────────────────────────────────
-// Uses Mailjet HTTP API — bypasses Render SMTP blocks
+// Uses an HTTPS email webhook to bypass hosted SMTP restrictions.
 builder.Services.AddHttpClient<IEmailService, EmailService>();
 
 // ── Application Services ──────────────────────────────────────────────────────
@@ -145,6 +146,39 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Aut
 app.MapControllers();
 
 app.Run();
+
+static void LoadDevelopmentEnvFile()
+{
+    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+    if (string.Equals(environment, "Production", StringComparison.OrdinalIgnoreCase))
+        return;
+
+    var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+    for (var i = 0; directory != null && i < 5; i++, directory = directory.Parent)
+    {
+        var envPath = Path.Combine(directory.FullName, ".env");
+        if (!File.Exists(envPath))
+            continue;
+
+        foreach (var rawLine in File.ReadAllLines(envPath))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
+                continue;
+
+            var separatorIndex = line.IndexOf('=');
+            if (separatorIndex <= 0)
+                continue;
+
+            var key = line[..separatorIndex].Trim();
+            var value = line[(separatorIndex + 1)..].Trim().Trim('"');
+            if (Environment.GetEnvironmentVariable(key) == null)
+                Environment.SetEnvironmentVariable(key, value);
+        }
+
+        return;
+    }
+}
 
 // Make Program class accessible to integration tests
 public partial class Program { }

@@ -40,6 +40,7 @@ public class GlobalExceptionMiddleware
         {
             UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
             KeyNotFoundException        => (int)HttpStatusCode.NotFound,
+            EmailDeliveryException      => (int)HttpStatusCode.BadGateway,
             InvalidOperationException   => (int)HttpStatusCode.BadRequest,
             ArgumentException           => (int)HttpStatusCode.BadRequest,
             TooManyRequestsException    => 429, // Too Many Requests
