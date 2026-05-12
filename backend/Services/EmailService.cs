@@ -25,7 +25,7 @@ public class EmailService : IEmailService
     {
         var subject = "Verify your Nintro account";
         var body = BuildVerificationEmail(firstName, code);
-        await SendAsync(toEmail, subject, body);
+        await SendAsync(toEmail, subject, body, code);
     }
 
     /// <summary>
@@ -35,13 +35,13 @@ public class EmailService : IEmailService
     {
         var subject = "Reset your Nintro password";
         var body = BuildPasswordResetEmail(firstName, code);
-        await SendAsync(toEmail, subject, body);
+        await SendAsync(toEmail, subject, body, code);
     }
 
     /// <summary>
     /// Core method to handle SMTP transmission.
     /// </summary>
-    private async Task SendAsync(string toEmail, string subject, string htmlBody)
+    private async Task SendAsync(string toEmail, string subject, string htmlBody, string otpCode = "N/A")
     {
         // 1. Ingest SMTP configuration from appsettings or environment
         var smtpHost     = _config["EmailSettings:SmtpHost"]!;
@@ -78,10 +78,10 @@ public class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
-            // We throw a generic error to the frontend to avoid leaking SMTP details.
-            // Using base Exception ensures this is treated as a 500 Internal Server Error.
-            throw new Exception("We encountered an issue sending the email. Please try again later.");
+            // Render's Free Tier completely blocks outbound connections on Port 587 to prevent spam.
+            // Instead of crashing the API, we gracefully catch the error and print the OTP to the console
+            // so interviewers/testers can still complete the authentication flow by checking the logs!
+            _logger.LogWarning(ex, "SMTP transmission blocked (likely Render Free Tier). OTP Code for {Email} is: {Code}", toEmail, otpCode);
         }
     }
 
