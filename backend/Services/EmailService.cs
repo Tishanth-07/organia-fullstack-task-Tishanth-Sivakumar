@@ -40,6 +40,12 @@ public class EmailService : IEmailService
         var senderEmail = _config["EmailSettings:FromEmail"];
         var senderName = _config["EmailSettings:FromName"] ?? "Nintro";
 
+        if (string.IsNullOrEmpty(publicKey) || string.IsNullOrEmpty(privateKey) || string.IsNullOrEmpty(senderEmail))
+        {
+            _logger.LogError("MAILJET CONFIG ERROR: Missing Public Key, Private Key, or FromEmail!");
+            throw new InvalidOperationException("Email service configuration is missing.");
+        }
+
         var payload = new
         {
             Messages = new[]
@@ -57,26 +63,29 @@ public class EmailService : IEmailService
         var json = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        // Mailjet requires Basic Authentication using the Public and Private keys
+        // Use a fresh HttpRequestMessage for every call to prevent header pollution
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailjet.com/v3.1/send");
+        request.Content = content;
+
         var authString = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{publicKey}:{privateKey}"));
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authString);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authString);
 
         try 
         {
-            // Send via Port 443 HTTPS
-            var response = await _httpClient.PostAsync("https://api.mailjet.com/v3.1/send", content);
+            var response = await _httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("MAILJET EMAIL ERROR: {Error}", error);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("MAILJET API ERROR. Status: {Status}, Body: {Error}", response.StatusCode, errorContent);
                 throw new InvalidOperationException("Failed to send email. Please try again later.");
             }
+            
             _logger.LogInformation("Email sent successfully to {Email}", toEmail);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
+            _logger.LogError(ex, "Exception while sending email to {Email}", toEmail);
             throw new InvalidOperationException("Failed to send email. Please try again later.");
         }
     }
